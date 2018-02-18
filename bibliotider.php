@@ -14,10 +14,14 @@ Domain Path:  /sprak
 */
 
 
-// Opprett MySQL-tabeller
+// Oppretter MySQL-tabeller
 $bibliotider = new bibliotider;
 register_activation_hook( __FILE__, array($bibliotider, 'mysql_install'));
 
+// Oppretter widget
+add_action( 'widgets_init', function(){
+	register_widget( 'Bibliotider_Widget' );
+});
 
 
 // ----- Hovedklassen -----
@@ -95,20 +99,127 @@ class bibliotider {
 
 	// Finn åpningstidene for en bestemt dag
 	
-	function dag($dato, $filial = 1, $format = 'array') {
+	function dag($dato, $filial = 1) {
+		global $wpdb;
+
 		// $dato må være i formatet '2018-02-28'
 		$aar = substr($dato, 0, 4);
 
 		// Finn unntak
-		$query = 'SELECT betjent, u_starttid AS starttid, u_sluttid AS sluttid, u_navn AS navn FROM '.$this->tabnavn.' WHERE filial = '.$filial.' AND '.$dato.' BETWEEN u_startdato AND u_sluttdato ORDER BY betjent';
+		$query = 'SELECT betjent, u_starttid AS starttid, u_sluttid AS sluttid, u_navn AS navn FROM '.$this->tabnavn.' WHERE filial = '.$filial.' AND \''.$dato.'\' BETWEEN u_startdato AND u_sluttdato ORDER BY betjent';
 
 		$result = $wpdb->get_results( $query, OBJECT_K );
 
 		if (0 == $result->num_rows) {
-			$query = 'SELECT t.betjent, t.starttid, t.sluttid, p.navn FROM '.$this->tabnavn.' AS t LEFT JOIN '.$this->tabnavn.'_perioder AS p ON t.periode = p.id WHERE t.filial = '.$filial.' AND ((p.spesiell = 0 AND '.$d.' BETWEEN DATE_FORMAT(p.startdato, \''.$aar.'-%m-%d\') AND DATE_FORMAT(p.sluttdato, \''.$aar.'-%m-%d\')) OR (p.spesiell = 1 AND ('.$dato.' >= DATE_FORMAT(p.startdato, \''.$aar.'-%m-%d\') OR '.$dato.' <= DATE_FORMAT(p.sluttdato, \''.$aar.'-%m-%d\')))) AND t.ukedag = WEEKDAY('.$dato.') + 1';
+			$query = 'SELECT t.betjent, t.starttid, t.sluttid, p.navn FROM '.$this->tabnavn.' AS t LEFT JOIN '.$this->tabnavn.'_perioder AS p ON t.periode = p.id WHERE t.filial = '.$filial.' AND ((p.spesiell = 0 AND \''.$dato.'\' BETWEEN DATE_FORMAT(p.startdato, \''.$aar.'-%m-%d\') AND DATE_FORMAT(p.sluttdato, \''.$aar.'-%m-%d\')) OR (p.spesiell = 1 AND (\''.$dato.'\' >= DATE_FORMAT(p.startdato, \''.$aar.'-%m-%d\') OR \''.$dato.'\' <= DATE_FORMAT(p.sluttdato, \''.$aar.'-%m-%d\')))) AND t.ukedag = WEEKDAY(\''.$dato.'\') + 1';
 
 			$result = $wpdb->get_results( $query, OBJECT_K );
 		}
 		return $result;
+	}
+
+	function uke($dato, $filial = 1) {
+		// Typer åpningstid
+		$betjent_typer = get_option('bibliotider_betjent');
+		$antall_typer = count($betjent_typer);
+
+		// Konverterer gitt dato til timestamp
+		$eksplodert_tid = explode('-', $dato);
+		$datotid = mktime(12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2], $eksplodert_tid[0]);
+
+		// Hvilken ukedag har vi?
+		$gitt_ukedag = date('N', $datotid);
+
+		echo '<table>';
+
+		// Headerrad
+		echo '<tr>';
+		echo '<th>'.__('Dag', 'bibliotider').'</th>';
+		for ( $i = 0; $i < $antall_typer; $i++ ) {
+			echo '<th>'.$betjent_typer[$i][0].'</th>';
+		}
+		echo '</tr>';
+
+		for ( $d = 1; $d <= 7; $d++) {
+			$dagtid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2] - $gitt_ukedag + $d, $eksplodert_tid[0] );
+			$dag = date( 'Y-m-d', $dagtid );
+
+			echo '<tr>';
+			echo '<td>';
+			echo date_i18n( __('l d.m.', 'bibliotider'), $dagtid );
+			echo '</td>';
+
+			// Hent info om denne dagens åpningstider
+			$dagtider = $this->dag($dag, $filial);
+				for ( $i = 0; $i < $antall_typer; $i++ ) {
+					echo '<td>';
+					if (isset($dagtider[$i + 1])) {
+						echo $dagtider[$i + 1]->starttid;
+						echo '&ndash;';
+						echo $dagtider[$i + 1]->starttid;
+					}
+					else {
+						echo '&ndash;';
+					}
+					echo '</td>';
+				}
+			echo '</tr>';
+
+
+		}
+
+		echo '<table>';
+		
+
+		print_r($this->dag($dato, $filial));
+	}
+}
+
+// ----- Åpningstider-widgeten -----
+
+class Bibliotider_Widget extends WP_Widget {
+
+	/**
+	 * Sets up the widgets name etc
+	 */
+	public function __construct() {
+		$widget_ops = array( 
+			'classname' => 'bibliotider_widget',
+			'description' => __('Viser åpningstider for denne uka for en valgt filial.', 'bibliotider'),
+		);
+		parent::__construct( 'bibliotider_widget', __('Bibliotekets åpningstider', 'bibliotider'), $widget_ops );
+	}
+
+	/**
+	 * Outputs the content of the widget
+	 *
+	 * @param array $args
+	 * @param array $instance
+	 */
+	public function widget( $args, $instance ) {
+		// outputs the content of the widget
+		global $bibliotider;
+		echo $bibliotider->uke('2018-02-20');
+	}
+
+	/**
+	 * Outputs the options form on admin
+	 *
+	 * @param array $instance The widget options
+	 */
+	public function form( $instance ) {
+		// outputs the options form on admin
+	}
+
+	/**
+	 * Processing widget options on save
+	 *
+	 * @param array $new_instance The new options
+	 * @param array $old_instance The previous options
+	 *
+	 * @return array
+	 */
+	public function update( $new_instance, $old_instance ) {
+		// processes widget options to be saved
 	}
 }
