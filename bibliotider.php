@@ -23,6 +23,8 @@ add_action( 'widgets_init', function(){
 	register_widget( 'Bibliotider_Widget' );
 });
 
+// Oppretter Innstillinger-side i dashboardmenyen
+add_action( 'admin_menu', array( $bibliotider, 'meny' ) );
 
 // ----- Hovedklassen -----
 
@@ -168,11 +170,24 @@ class bibliotider {
 
 		}
 
-		echo '<table>';
-		
-
-		print_r($this->dag($dato, $filial));
+		echo '</table>';
 	}
+
+	// Legger pluginen i administrasjonsmenyen
+	function meny() {
+		add_options_page( 'Åpningstider', 'Bibliotekets åpningstider', 'manage_options', 'bibliotider.php', array($this, 'innstillinger') );
+	}
+
+	// Innstillinger-sida
+	function innstillinger() {
+		if ( !current_user_can( 'manage_options' ) )  {
+			wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
+		}
+		echo '<div class="wrap">';
+		echo '<p>Here is where the form would go if I actually had options.</p>';
+		echo '</div>';
+	}
+
 }
 
 // ----- Åpningstider-widgeten -----
