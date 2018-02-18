@@ -185,12 +185,7 @@ class bibliotider {
 	function innstillinger() {
 		global $wpdb;
 
-		if ( !current_user_can( 'manage_options' ) )  {
-			wp_die( __( 'Du har ikke tilstrekkelig tilgang til å vise innholdet på denne siden.' ), 'bibliotider' );
-		}
-
-		echo '<div class="wrap">';
-		echo '<h1>'.__('Endre åpningstider', 'bibliotider').'</h1>';
+		$verdier = array();
 
 		// Henter informasjon om filialer
 		$filialer = get_option('bibliotider_filialer');
@@ -204,12 +199,84 @@ class bibliotider {
 		$perioder = $wpdb->get_results('SELECT id, navn, startdato, sluttdato FROM '.$this->tabnavn.'_perioder ORDER BY id', ARRAY_A);
 		$antall_perioder = count($perioder);
 
+		// Henter tidligere verdier fra basen
+		for ($f = 0; $f < $antall_filialer; $f++) {
+			// Sommertid/vintertid
+			for ($p = 0; $p < $antall_perioder; $p++) {
+				$faktisk_p = $perioder[$p]['id'];
+				// Ukedag
+				for ($d = 1; $d <= 7; $d++) {
+					// Betjent/selvbetjent/meråpent
+					for ($b = 0; $b < $antall_betjenttyper; $b++) {
+						$faktisk_b = $b + 1;
+						$res = $wpdb->get_row($wpdb->prepare('SELECT starttid, sluttid FROM '.$this->tabnavn.' WHERE filial = %d AND periode = %d AND ukedag = %d AND betjent = %d', $f, $faktisk_p, $d, $faktisk_b));
+						$verdier[$f][$p][$d][$b] = $res;
+					}
+				}
+			}
+		}
+
+
+		if ( !current_user_can( 'manage_options' ) )  {
+			wp_die( __( 'Du har ikke tilstrekkelig tilgang til å vise innholdet på denne siden.' ), 'bibliotider' );
+		}
+
+		elseif (isset($_POST['form_submitted'])) {
+			// NB legg til masse validering
+
+			// Filial
+			for ($f = 0; $f < $antall_filialer; $f++) {
+				// Sommertid/vintertid
+				for ($p = 0; $p < $antall_perioder; $p++) {
+					$faktisk_p = $perioder[$p]['id'];
+					// Ukedag
+					for ($d = 1; $d <= 7; $d++) {
+						// Betjent/selvbetjent/meråpent
+						for ($b = 0; $b < $antall_betjenttyper; $b++) {
+							$faktisk_b = $b + 1;
+							
+							$eksisterer = false;
+							$skal_eksistere = false;
+							// Eksisterer verdien i basen fra før?
+							if (isset($verdier[$f][$p][$d][$b])) {
+								$eksisterer = true;
+							}
+
+							// Er det fylt inn en ny verdi i skjemaet? (Både start og slutt?)
+							if ($starttid = $_POST['f-'.$i.'-p-'.$p.'-d-'.$d.'-b-'.$h.'-start'] && $sluttid = $_POST['f-'.$i.'-p-'.$p.'-d-'.$d.'-b-'.$h.'-slutt']) {
+								$skal_eksistere = true;
+							}
+
+							// Dersom verdien ligger i basen, men ikke står i skjemaet, skal den slettes.
+							if ($eksisterer && !$skal_eksistere) {
+								$wpdb->delete($this->tabnavn, array('filial' => $f, 'periode' => $faktisk_p, 'ukedag' => $d, 'betjent' => $faktisk_b), array( '%d', '%d', '%d', '%d' ));
+							}
+
+							// Dersom verdien ligger i basen og skjemaet, men ikke er identisk, skal den oppdateres.
+
+							// Dersom verdien ikke ligger i basen, men står i skjemaet, skal den legges inn.
+							if (!$eksisterer && $skal_eksistere) {
+								$wpdb->insert($this->tabnavn, array('filial' => $f, 'periode' => $faktisk_p, 'ukedag' => $d, 'betjent' => $faktisk_b, 'starttid' => $starttid, 'sluttid' => $sluttid), array( '%d', '%d', '%d', '%d', '%s', '%s' ));
+							}
+						}
+					}
+				}
+			}
+		}
+
+		echo '<div class="wrap">';
+		echo '<h1>'.__('Endre åpningstider', 'bibliotider').'</h1>';
+
+		echo '<form method="post" action="">';
+
 		$eksplodert_tid = explode('-', date('Y-m-d'));
 		$gitt_ukedag = date('N');
 
 		for ($i = 0; $i < $antall_filialer; $i++) {
 			echo '<h2>'.$filialer[$i].'</h2>';
 			for ($j = 0; $j < $antall_perioder; $j++) {
+				$faktisk_p = $perioder[$j]['id'];
+
 				echo '<h3>'.sprintf(__('%1$s (fra %2$s til %3$s)', 'bibliotider'), $perioder[$j]['navn'], date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$j]['startdato'])), date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$j]['sluttdato']))).'</h3>';
 
 				echo '<table>';
@@ -232,25 +299,23 @@ class bibliotider {
 					echo '</td>';
 
 					// Hent info om denne dagens åpningstider
-					$dagtider = $this->dag($dag, $filial);
-						for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
-							echo '<td>';
-							echo '<input type="time"/>';
-							echo '&ndash;';
-							echo '<input type="time"/>';
-							echo '</td>';
-						}
+					for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
+						echo '<td>';
+						echo '<input type="time" name="f-'.$i.'-p-'.$p.'-d-'.$d.'-b-'.$h.'-start" value="'.$verdier[$i][$p][$d][$h].'" />';
+						echo '&ndash;';
+						echo '<input type="time" name="f-'.$i.'-p-'.$p.'-d-'.$d.'-b-'.$h.'-slutt" value="'.$verdier[$i][$p][$d][$h].'" />';
+						echo '</td>';
+					}
 					echo '</tr>';
 
 
 				}
 
 				echo '</table>';
-
-
-
 			}
 		}
+		echo '<p><input type="hidden" name="form_submitted" value="1"><input type="submit" value="'.__('Lagre endringer', 'bibliotider').'" /></p>';
+		echo '</form>';
 		echo '</div>';
 	}
 
