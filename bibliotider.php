@@ -126,6 +126,9 @@ class bibliotider {
 		$antall_typer = count($betjent_typer);
 
 		// Konverterer gitt dato til timestamp
+
+		echo '<p>'.$dato.'</p>';
+
 		$eksplodert_tid = explode('-', $dato);
 		$datotid = mktime(12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2], $eksplodert_tid[0]);
 
@@ -180,11 +183,74 @@ class bibliotider {
 
 	// Innstillinger-sida
 	function innstillinger() {
+		global $wpdb;
+
 		if ( !current_user_can( 'manage_options' ) )  {
-			wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
+			wp_die( __( 'Du har ikke tilstrekkelig tilgang til å vise innholdet på denne siden.' ), 'bibliotider' );
 		}
+
 		echo '<div class="wrap">';
-		echo '<p>Here is where the form would go if I actually had options.</p>';
+		echo '<h1>'.__('Endre åpningstider', 'bibliotider').'</h1>';
+
+		// Henter informasjon om filialer
+		$filialer = get_option('bibliotider_filialer');
+		$antall_filialer = count($filialer);
+
+		// Henter informasjon om typer åpningstid (betjent, meråpent ...)
+		$betjenttyper = get_option('bibliotider_betjent');
+		$antall_betjenttyper = count($betjenttyper);
+
+		// Henter informasjon om perioder i året (sommertid, vintertid ...)
+		$perioder = $wpdb->get_results('SELECT id, navn, startdato, sluttdato FROM '.$this->tabnavn.'_perioder ORDER BY id', ARRAY_A);
+		$antall_perioder = count($perioder);
+
+		$eksplodert_tid = explode('-', date('Y-m-d'));
+		$gitt_ukedag = date('N');
+
+		for ($i = 0; $i < $antall_filialer; $i++) {
+			echo '<h2>'.$filialer[$i].'</h2>';
+			for ($j = 0; $j < $antall_perioder; $j++) {
+				echo '<h3>'.sprintf(__('%1$s (fra %2$s til %3$s)', 'bibliotider'), $perioder[$j]['navn'], date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$j]['startdato'])), date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$j]['sluttdato']))).'</h3>';
+
+				echo '<table>';
+
+				// Headerrad
+				echo '<tr>';
+				echo '<th>'.__('Dag', 'bibliotider').'</th>';
+				for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
+					echo '<th>'.$betjenttyper[$h][0].'</th>';
+				}
+				echo '</tr>';
+
+				for ( $d = 1; $d <= 7; $d++) {
+					$dagtid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2] - $gitt_ukedag + $d, $eksplodert_tid[0] );
+					$dag = date( 'Y-m-d', $dagtid );
+
+					echo '<tr>';
+					echo '<td>';
+					echo date_i18n( __('l', 'bibliotider'), $dagtid );
+					echo '</td>';
+
+					// Hent info om denne dagens åpningstider
+					$dagtider = $this->dag($dag, $filial);
+						for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
+							echo '<td>';
+							echo '<input type="time"/>';
+							echo '&ndash;';
+							echo '<input type="time"/>';
+							echo '</td>';
+						}
+					echo '</tr>';
+
+
+				}
+
+				echo '</table>';
+
+
+
+			}
+		}
 		echo '</div>';
 	}
 
@@ -214,7 +280,7 @@ class Bibliotider_Widget extends WP_Widget {
 	public function widget( $args, $instance ) {
 		// outputs the content of the widget
 		global $bibliotider;
-		echo $bibliotider->uke('2018-02-20');
+		echo $bibliotider->uke(date('Y-m-d'));
 	}
 
 	/**
