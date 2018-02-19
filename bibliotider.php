@@ -243,7 +243,7 @@ class bibliotider {
 							}
 
 							// Er det fylt inn en ny verdi i skjemaet? (Både start og slutt?)
-							if ($starttid = $_POST['f-'.$i.'-p-'.$p.'-d-'.$d.'-b-'.$h.'-start'] && $sluttid = $_POST['f-'.$i.'-p-'.$p.'-d-'.$d.'-b-'.$h.'-slutt']) {
+							if ($starttid = $_POST['f-'.$f.'-p-'.$p.'-d-'.$d.'-b-'.$b.'-start'] && $sluttid = $_POST['f-'.$f.'-p-'.$p.'-d-'.$d.'-b-'.$b.'-slutt']) {
 								$skal_eksistere = true;
 							}
 
@@ -301,9 +301,9 @@ class bibliotider {
 					// Hent info om denne dagens åpningstider
 					for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
 						echo '<td>';
-						echo '<input type="time" name="f-'.$i.'-p-'.$p.'-d-'.$d.'-b-'.$h.'-start" value="'.$verdier[$i][$p][$d][$h].'" />';
+						echo '<input type="time" name="f-'.$i.'-p-'.$j.'-d-'.$d.'-b-'.$h.'-start" value="'.$verdier[$i][$j][$d][$h].'" />';
 						echo '&ndash;';
-						echo '<input type="time" name="f-'.$i.'-p-'.$p.'-d-'.$d.'-b-'.$h.'-slutt" value="'.$verdier[$i][$p][$d][$h].'" />';
+						echo '<input type="time" name="f-'.$i.'-p-'.$j.'-d-'.$d.'-b-'.$h.'-slutt" value="'.$verdier[$i][$j][$d][$h].'" />';
 						echo '</td>';
 					}
 					echo '</tr>';
