@@ -257,6 +257,8 @@ class bibliotider {
 							// Dersom verdien ikke ligger i basen, men står i skjemaet, skal den legges inn.
 							if (!$eksisterer && $skal_eksistere) {
 								$wpdb->insert($this->tabnavn, array('filial' => $f, 'periode' => $faktisk_p, 'ukedag' => $d, 'betjent' => $faktisk_b, 'starttid' => $starttid, 'sluttid' => $sluttid), array( '%d', '%d', '%d', '%d', '%s', '%s' ));
+								$verdier[$f][$p][$d][$b]->starttid = $starttid;
+								$verdier[$f][$p][$d][$b]->sluttid = $sluttid;
 							}
 						}
 					}
@@ -301,9 +303,9 @@ class bibliotider {
 					// Hent info om denne dagens åpningstider
 					for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
 						echo '<td>';
-						echo '<input type="time" name="f-'.$i.'-p-'.$j.'-d-'.$d.'-b-'.$h.'-start" value="'.$verdier[$i][$j][$d][$h].'" />';
+						echo '<input type="time" name="f-'.$i.'-p-'.$j.'-d-'.$d.'-b-'.$h.'-start" value="'.$verdier[$i][$j][$d][$h]->starttid.'" />';
 						echo '&ndash;';
-						echo '<input type="time" name="f-'.$i.'-p-'.$j.'-d-'.$d.'-b-'.$h.'-slutt" value="'.$verdier[$i][$j][$d][$h].'" />';
+						echo '<input type="time" name="f-'.$i.'-p-'.$j.'-d-'.$d.'-b-'.$h.'-slutt" value="'.$verdier[$i][$j][$d][$h]->sluttid.'" />';
 						echo '</td>';
 					}
 					echo '</tr>';
