@@ -72,7 +72,6 @@ class bibliotider {
 		  navn varchar(100) NOT NULL,
 		  startdato date DEFAULT '0000-00-00' NOT NULL,
 		  sluttdato date DEFAULT '0000-00-00' NOT NULL,
-		  spesiell tinyint(1) NOT NULL,
 		  PRIMARY KEY  (id)
 		) $charset_collate;";
 		dbDelta( $sql );
@@ -113,21 +112,21 @@ class bibliotider {
 		$result = $wpdb->get_results( $query, OBJECT_K );
 
 		if (0 == $result->num_rows) {
-			$query = 'SELECT t.betjent, t.starttid, t.sluttid, p.navn FROM '.$this->tabnavn.' AS t LEFT JOIN '.$this->tabnavn.'_perioder AS p ON t.periode = p.id WHERE t.filial = '.$filial.' AND ((p.spesiell = 0 AND \''.$dato.'\' BETWEEN DATE_FORMAT(p.startdato, \''.$aar.'-%m-%d\') AND DATE_FORMAT(p.sluttdato, \''.$aar.'-%m-%d\')) OR (p.spesiell = 1 AND (\''.$dato.'\' >= DATE_FORMAT(p.startdato, \''.$aar.'-%m-%d\') OR \''.$dato.'\' <= DATE_FORMAT(p.sluttdato, \''.$aar.'-%m-%d\')))) AND t.ukedag = WEEKDAY(\''.$dato.'\') + 1';
+			$query = 'SELECT t.betjent, t.starttid, t.sluttid, p.navn FROM '.$this->tabnavn.' AS t LEFT JOIN '.$this->tabnavn.'_perioder AS p ON t.periode = p.id WHERE t.filial = '.$filial.' AND ((p.startdato <= p.sluttdato AND \''.$dato.'\' BETWEEN DATE_FORMAT(p.startdato, \''.$aar.'-%m-%d\') AND DATE_FORMAT(p.sluttdato, \''.$aar.'-%m-%d\')) OR (p.startdato > p.sluttdato AND (\''.$dato.'\' >= DATE_FORMAT(p.startdato, \''.$aar.'-%m-%d\') OR \''.$dato.'\' <= DATE_FORMAT(p.sluttdato, \''.$aar.'-%m-%d\')))) AND t.ukedag = WEEKDAY(\''.$dato.'\') + 1';
 
 			$result = $wpdb->get_results( $query, OBJECT_K );
 		}
 		return $result;
 	}
 
-	function uke($dato, $filial = 1) {
+	function uke($dato, $filial = 0) {
+		global $wpdb;
+		$res = $wpdb->get_results('SELECT * FROM '.$this->tabnavn.' AS t LEFT JOIN '.$this->tabnavn.'_perioder AS p ON t.periode = p.id');
 		// Typer åpningstid
 		$betjent_typer = get_option('bibliotider_betjent');
 		$antall_typer = count($betjent_typer);
 
 		// Konverterer gitt dato til timestamp
-
-		echo '<p>'.$dato.'</p>';
 
 		$eksplodert_tid = explode('-', $dato);
 		$datotid = mktime(12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2], $eksplodert_tid[0]);
@@ -159,9 +158,9 @@ class bibliotider {
 				for ( $i = 0; $i < $antall_typer; $i++ ) {
 					echo '<td>';
 					if (isset($dagtider[$i + 1])) {
-						echo $dagtider[$i + 1]->starttid;
+						echo substr($dagtider[$i + 1]->starttid, 0, 5);
 						echo '&ndash;';
-						echo $dagtider[$i + 1]->starttid;
+						echo substr($dagtider[$i + 1]->sluttid, 0, 5);
 					}
 					else {
 						echo '&ndash;';
@@ -243,8 +242,10 @@ class bibliotider {
 							}
 
 							// Er det fylt inn en ny verdi i skjemaet? (Både start og slutt?)
-							if ($starttid = $_POST['f-'.$f.'-p-'.$p.'-d-'.$d.'-b-'.$b.'-start'] && $sluttid = $_POST['f-'.$f.'-p-'.$p.'-d-'.$d.'-b-'.$b.'-slutt']) {
+							if ($_POST['f-'.$f.'-p-'.$p.'-d-'.$d.'-b-'.$b.'-start'] && $_POST['f-'.$f.'-p-'.$p.'-d-'.$d.'-b-'.$b.'-slutt']) {
 								$skal_eksistere = true;
+								$starttid = $_POST['f-'.$f.'-p-'.$p.'-d-'.$d.'-b-'.$b.'-start'];
+								$sluttid = $_POST['f-'.$f.'-p-'.$p.'-d-'.$d.'-b-'.$b.'-slutt'];
 							}
 
 							// Dersom verdien ligger i basen, men ikke står i skjemaet, skal den slettes.
