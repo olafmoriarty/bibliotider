@@ -93,12 +93,12 @@ class bibliotider {
 
 		if (!get_option('bibliotider_betjent')) {
 			// Legger default liste over typer åpningstid i options
-			update_option('bibliotider_betjent', array( [__('Betjent', 'bibliotider'), __('Biblioteket er åpent for alle!', 'bibliotider')], [__('Selvbetjent', 'bibliotider'), __('Biblioteket er åpent for alle, men skranken og telefonen er ikke betjent.', 'bibliotider')], [__('Meråpent', 'bibliotider'), __('Biblioteket er stengt, men brukere som har inngått avtale om tilgang til Meråpent bibliotek kan låse seg inn med lånekortet og benytte biblioteket.', 'bibliotider')] ) );
+			update_option('bibliotider_betjent', array( [__('Selvbetjent', 'bibliotider'), __('Biblioteket er åpent for alle, men skranken og telefonen er ikke betjent.', 'bibliotider')], [__('Betjent', 'bibliotider'), __('Biblioteket er åpent for alle!', 'bibliotider')], [__('Meråpent', 'bibliotider'), __('Biblioteket er stengt, men brukere som har inngått avtale om tilgang til Meråpent bibliotek kan låse seg inn med lånekortet og benytte biblioteket.', 'bibliotider')] ) );
 		}
 
 	}
 
-	// Finn åpningstidene for en bestemt dag
+	// ----- Finn åpningstidene for en bestemt dag -----
 	
 	function dag($dato, $filial = 1) {
 		global $wpdb;
@@ -118,6 +118,8 @@ class bibliotider {
 		}
 		return $result;
 	}
+
+	// ----- Skriv ut en tabell over åpningstidene for en bestemt uke -----
 
 	function uke($dato, $filial = 0) {
 		global $wpdb;
@@ -175,12 +177,14 @@ class bibliotider {
 		echo '</table>';
 	}
 
-	// Legger pluginen i administrasjonsmenyen
+	// ----- Legg administrasjonssiden for scriptet inn i menyen -----
+
 	function meny() {
 		add_options_page( 'Åpningstider', 'Bibliotekets åpningstider', 'manage_options', 'bibliotider.php', array($this, 'innstillinger') );
 	}
 
-	// Innstillinger-sida
+	// ----- Innstillinger -----
+
 	function innstillinger() {
 		global $wpdb;
 
@@ -208,7 +212,7 @@ class bibliotider {
 					// Betjent/selvbetjent/meråpent
 					for ($b = 0; $b < $antall_betjenttyper; $b++) {
 						$faktisk_b = $b + 1;
-						$res = $wpdb->get_row($wpdb->prepare('SELECT starttid, sluttid FROM '.$this->tabnavn.' WHERE filial = %d AND periode = %d AND ukedag = %d AND betjent = %d', $f, $faktisk_p, $d, $faktisk_b));
+						$res = $wpdb->get_row($wpdb->prepare('SELECT TIME_FORMAT(starttid, \'%H:%i\') AS starttid, TIME_FORMAT(sluttid, \'%H:%i\') AS sluttid FROM '.$this->tabnavn.' WHERE filial = %d AND periode = %d AND ukedag = %d AND betjent = %d', $f, $faktisk_p, $d, $faktisk_b), ARRAY_A);
 						$verdier[$f][$p][$d][$b] = $res;
 					}
 				}
@@ -237,7 +241,7 @@ class bibliotider {
 							$eksisterer = false;
 							$skal_eksistere = false;
 							// Eksisterer verdien i basen fra før?
-							if (isset($verdier[$f][$p][$d][$b])) {
+							if (isset($verdier[$f][$p][$d][$b]['starttid'])) {
 								$eksisterer = true;
 							}
 
@@ -251,15 +255,22 @@ class bibliotider {
 							// Dersom verdien ligger i basen, men ikke står i skjemaet, skal den slettes.
 							if ($eksisterer && !$skal_eksistere) {
 								$wpdb->delete($this->tabnavn, array('filial' => $f, 'periode' => $faktisk_p, 'ukedag' => $d, 'betjent' => $faktisk_b), array( '%d', '%d', '%d', '%d' ));
+								$verdier[$f][$p][$d][$b]['starttid'] = '';
+								$verdier[$f][$p][$d][$b]['sluttid'] = '';
 							}
 
 							// Dersom verdien ligger i basen og skjemaet, men ikke er identisk, skal den oppdateres.
+							if ($eksisterer && $skal_eksistere && substr($starttid, 0, 5) != substr($verdier[$f][$p][$d][$b]['starttid'], 0, 5)) {
+								$wpdb->update($this->tabnavn, array('starttid' => $starttid, 'sluttid' => $sluttid), array('filial' => $f, 'periode' => $faktisk_p, 'ukedag' => $d, 'betjent' => $faktisk_b), array( '%s', '%s' ), array( '%d', '%d', '%d', '%d' ));
+								$verdier[$f][$p][$d][$b]['starttid'] = $starttid;
+								$verdier[$f][$p][$d][$b]['sluttid'] = $sluttid;
+							}
 
 							// Dersom verdien ikke ligger i basen, men står i skjemaet, skal den legges inn.
 							if (!$eksisterer && $skal_eksistere) {
 								$wpdb->insert($this->tabnavn, array('filial' => $f, 'periode' => $faktisk_p, 'ukedag' => $d, 'betjent' => $faktisk_b, 'starttid' => $starttid, 'sluttid' => $sluttid), array( '%d', '%d', '%d', '%d', '%s', '%s' ));
-								$verdier[$f][$p][$d][$b]->starttid = $starttid;
-								$verdier[$f][$p][$d][$b]->sluttid = $sluttid;
+								$verdier[$f][$p][$d][$b]['starttid'] = $starttid;
+								$verdier[$f][$p][$d][$b]['sluttid'] = $sluttid;
 							}
 						}
 					}
@@ -304,9 +315,9 @@ class bibliotider {
 					// Hent info om denne dagens åpningstider
 					for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
 						echo '<td>';
-						echo '<input type="time" name="f-'.$i.'-p-'.$j.'-d-'.$d.'-b-'.$h.'-start" value="'.$verdier[$i][$j][$d][$h]->starttid.'" />';
+						echo '<input type="time" name="f-'.$i.'-p-'.$j.'-d-'.$d.'-b-'.$h.'-start" value="'.$verdier[$i][$j][$d][$h]['starttid'].'" />';
 						echo '&ndash;';
-						echo '<input type="time" name="f-'.$i.'-p-'.$j.'-d-'.$d.'-b-'.$h.'-slutt" value="'.$verdier[$i][$j][$d][$h]->sluttid.'" />';
+						echo '<input type="time" name="f-'.$i.'-p-'.$j.'-d-'.$d.'-b-'.$h.'-slutt" value="'.$verdier[$i][$j][$d][$h]['sluttid'].'" />';
 						echo '</td>';
 					}
 					echo '</tr>';
