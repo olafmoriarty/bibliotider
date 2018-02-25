@@ -1,38 +1,80 @@
-.katalogkort {
-  position: relative;   
-  min-height: 2000px; /* This part sucks */
-  clear: both;
-  margin: 25px 0;
-}
-.katalogkort .tab {
-  float: left;
-}
-.katalogkort .tab label {
-  background: #eee; 
-  padding: 10px; 
-  border: 1px solid #ccc; 
-  margin-left: -1px; 
-  position: relative;
-  left: 1px; 
-}
-.katalogkort .tab [type=radio] {
-  display: none;   
-}
-.katalogkort .innhold {
+.katalogkort > input[type="radio"] {
   position: absolute;
-  top: 28px;
-  left: 0;
-  background: white;
-  right: 0;
-  bottom: 0;
-  padding: 20px;
-  border: 1px solid #ccc; 
+  left: -200vw;
 }
-.katalogkort [type=radio]:checked ~ label {
-  background: white;
-  border-bottom: 1px solid white;
-  z-index: 2;
+
+.katalogkort .tab-panel {
+  display: none;
 }
-.katalogkort [type=radio]:checked ~ label ~ .innhold {
-  z-index: 1;
+
+.katalogkort > input:first-child:checked ~ .tab-panels > .tab-panel:first-child,
+.katalogkort > input:nth-child(3):checked ~ .tab-panels > .tab-panel:nth-child(2),
+.katalogkort > input:nth-child(5):checked ~ .tab-panels > .tab-panel:nth-child(3),
+.katalogkort > input:nth-child(7):checked ~ .tab-panels > .tab-panel:nth-child(4),
+.katalogkort > input:nth-child(9):checked ~ .tab-panels > .tab-panel:nth-child(5),
+.katalogkort > input:nth-child(11):checked ~ .tab-panels > .tab-panel:nth-child(6) {
+  display: block;
+}
+
+/*
+ Styling
+*/
+
+.katalogkort > label {
+  position: relative;
+  display: inline-block;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.katalogkort > label:hover::after,
+.katalogkort > input:focus + label::after,
+.katalogkort > input:checked + label::after {
+  background: #06c;
+}
+
+.katalogkort > label {
+  border-color: #ccc;
+  background: #808080;
+  color: #ffffff;
+}
+
+.katalogkort > input:checked + label {
+  border-color: #ccc;
+  border-bottom: 1px solid #fff;
+  margin-bottom: -1px;
+color: #000000;
+  background: #ffffff;
+}
+
+.katalogkort .tab-panel {
+  border: 1px solid #ccc;
+  padding: 10px;
+  background: white;
+}
+
+.katalogkort .tab-panel h2 {
+	font-size: 200%;
+	font-weight: bold;
+}
+
+.katalogkort .tab-panel textarea {
+	width: 100%;
+	min-height: 250px;
+}
+
+.katalogkort table.apningstider {
+	border-collapse: collapse;
+}
+.katalogkort table.apningstider th,
+.katalogkort table.apningstider td {
+	padding: 2px 10px;
+	border-bottom: solid 1px #808080;
+}
+.katalogkort table.apningstider th:nth-child(even),
+.katalogkort table.apningstider td:nth-child(even) {
+	background: #eeeeee;
 }

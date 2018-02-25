@@ -1,10 +1,17 @@
 <div class="katalogkort">
-    
-   <div class="tab">
-       <input type="radio" id="bt-standardtider" name="tab-group-1" checked>
-       <label for="bt-standardtider"><?php _e('Standardåpningstider', 'bibliotider'); ?></label>
-       
-       <div class="innhold">
+<input type="radio" name="katalogkort" id="tab1" checked>
+<label for="tab1"><?php _e('Åpningstider', 'bibliotider'); ?></label>
+<input type="radio" name="katalogkort" id="tab2">
+<label for="tab2"><?php _e('Unntak', 'bibliotider'); ?></label>
+<input type="radio" name="katalogkort" id="tab3">
+<label for="tab3"><?php _e('Filialer', 'bibliotider'); ?></label>
+<input type="radio" name="katalogkort" id="tab4">
+<label for="tab4"><?php _e('Perioder', 'bibliotider'); ?></label>
+<input type="radio" name="katalogkort" id="tab5">
+<label for="tab5"><?php _e('Typer åpningstid', 'bibliotider'); ?></label>
+
+  <div class="tab-panels">
+    <section class="tab-panel">
 		<?php
 			// ENDRE STANDARD ÅPNINGSTIDER
 
@@ -20,7 +27,7 @@
 
 					echo '<h3>'.sprintf(__('%1$s (fra %2$s til %3$s)', 'bibliotider'), $perioder[$j]['navn'], date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$j]['startdato'])), date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$j]['sluttdato']))).'</h3>';
 
-					echo '<table>';
+					echo '<table class="apningstider">';
 
 					// Headerrad
 					echo '<tr>';
@@ -55,45 +62,52 @@
 					echo '</table>';
 				}
 			}
-			echo '<p><input type="hidden" name="submit_standardtider" value="1"><input type="submit" value="'.__('Lagre endringer', 'bibliotider').'" /></p>';
+			echo '<p><input type="hidden" name="fane_sendt_inn" value="standardtider"><input type="submit" value="'.__('Lagre endringer', 'bibliotider').'" /></p>';
 			echo '</form>';
 		?>
-       </div> 
-   </div>
-    
-    <div class="tab">
-       <input type="radio" id="bt-unntak" name="tab-group-1">
-       <label for="bt-unntak"><?php _e('Unntak', 'bibliotider'); ?></label>
-     
-       <div class="innhold">
-           stuff
-       </div> 
-   </div>
-   <div class="tab">
-       <input type="radio" id="bt-filialer" name="tab-group-1">
-       <label for="bt-filialer"><?php _e('Filialer', 'bibliotider'); ?></label>
-       
-       <div class="innhold">
-           stuff
-       </div> 
-   </div>
-    
-    <div class="tab">
-       <input type="radio" id="bt-perioder" name="tab-group-1">
-       <label for="bt-perioder"><?php _e('Perioder', 'bibliotider'); ?></label>
-     
-       <div class="innhold">
-           stuff
-       </div> 
-   </div>
+	</section>
+    <section class="tab-panel">
 
-    <div class="tab">
-       <input type="radio" id="bt-typer" name="tab-group-1">
-       <label for="bt-typer"><?php _e('Typer åpningstid', 'bibliotider'); ?></label>
-     
-       <div class="innhold">
-           stuff
-       </div> 
-   </div>
+    </section>
+    <section class="tab-panel">
 
+	<?php
+		// REDIGER FILIALER
+		echo '<form method="post" action="">';
+
+		echo '<p>'.__('Rediger lista over avdelinger/filialer ved å redigere teksten i feltet under. Hver filial må stå på en egen linje.', 'bibliotider').'</p>';
+		echo '<textarea name="filialliste">'.implode("\n", $filialer).'</textarea>';
+		echo '<p><input type="hidden" name="fane_sendt_inn" value="filialer"><input type="submit" value="'.__('Lagre endringer', 'bibliotider').'" /></p>';
+		echo '</form>';
+	?>
+
+	</section>
+    <section class="tab-panel">
+
+    </section>
+    <section class="tab-panel">
+	<?php
+		// REDIGER TYPER ÅPNINGSTID
+		echo '<form method="post" action="">';
+
+		echo '<p>'.__('Biblioteket kan ha flere typer åpningstid (f.eks. betjent og meråpent). Du kan redigere lista over typer åpningstid ved å redigere teksten i feltet under.', 'bibliotider').'</p>';
+		echo '<p>'.__('Hver type åpningstid må stå på en egen linje, i dette formatet: [Navn på type]: [Beskrivelse av type]', 'bibliotider').'</p>';
+		echo '<p><em>['.__('Navn på type', 'bibliotider').']</em><strong>: </strong><em>['.__('Beskrivelse av type', 'bibliotider').']</em></p>';
+
+		$betjenttyper_tekst = '';
+		for ($i = 0; $i < $antall_betjenttyper; $i++) {
+			if ($i > 0) {
+				$betjenttyper_tekst .= "\n";
+			}
+			$betjenttyper_tekst .= $betjenttyper[$i][0].': '.$betjenttyper[$i][1];
+		}
+
+		echo '<textarea name="betjenttypeliste">'.$betjenttyper_tekst.'</textarea>';
+		echo '<p><input type="hidden" name="fane_sendt_inn" value="betjenttyper"><input type="submit" value="'.__('Lagre endringer', 'bibliotider').'" /></p>';
+		echo '</form>';
+	?>
+
+    </section>
+  </div>
+  
 </div>

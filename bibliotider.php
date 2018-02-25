@@ -86,7 +86,7 @@ class bibliotider {
 		dbDelta( $sql );
 
 		// Versjonskontroll
-		add_option('bibliotider_tabellversjon', '0.1');
+		update_option('bibliotider_tabellversjon', '0.1');
 
 		// Legger til default informasjon om perioder dersom tabellen er tom
 		$num = $wpdb->get_var('SELECT COUNT(*) FROM '.$this->tabnavn.'_perioder');
@@ -239,7 +239,9 @@ class bibliotider {
 			wp_die( __( 'Du har ikke tilstrekkelig tilgang til å vise innholdet på denne siden.' ), 'bibliotider' );
 		}
 
-		if (isset($_POST['submit_standardtider'])) {
+		// ----- Når brukeren har endret standardåpningstider -----
+
+		if (isset($_POST['fane_sendt_inn']) && $_POST['fane_sendt_inn'] == 'standardtider') {
 			// NB legg til masse validering
 
 			// Filial
@@ -292,6 +294,60 @@ class bibliotider {
 				}
 			}
 		}
+
+		// ----- Når brukeren har endret lista over filialer -----
+
+		elseif (isset($_POST['fane_sendt_inn']) && $_POST['fane_sendt_inn'] == 'filialer') {
+			
+			$filialliste = explode("\n", $_POST['filialliste']);
+			$antall = count($filialliste);
+			$filialer_ny = array();
+			$antall_filialer_ny = 0;
+			for ($i = 0; $i < $antall; $i++) {
+				$nf = trim($filialliste[$i]);
+				if ($nf) {
+					$filialer_ny[] = $nf;
+					$antall_filialer_ny++;
+				}
+			}
+			if ($antall_filialer_ny) {
+				update_option('bibliotider_filialer', $filialer_ny );
+				$filialer = $filialer_ny;
+				$antall_filialer = $antall_filialer_ny;
+			}
+		}
+
+		// ----- Når brukeren har endret lista over betjenttyper -----
+
+		elseif (isset($_POST['fane_sendt_inn']) && $_POST['fane_sendt_inn'] == 'betjenttyper') {
+			
+			$betjenttypeliste = explode("\n", $_POST['betjenttypeliste']);
+			$antall = count($betjenttypeliste);
+			$betjenttyper_ny = array();
+			$antall_betjenttyper_ny = 0;
+			for ($i = 0; $i < $antall; $i++) {
+				$nt = trim($betjenttypeliste[$i]);
+				if ($nt) {
+					$nta = explode(':', $nt, 2);
+					$nta[0] = trim($nta[0]);
+					if (isset($nta[1])) {
+						$nta[1] = trim($nta[1]);
+					}
+					else {
+						$nta[1] = '';
+					}
+					$betjenttyper_ny[] = $nta;
+					$antall_betjenttyper_ny++;
+				}
+			}
+			if ($antall_betjenttyper_ny) {
+				update_option('bibliotider_betjent', $betjenttyper_ny );
+				$betjenttyper = $betjenttyper_ny;
+				$antall_betjenttyper = $antall_betjenttyper_ny;
+			}
+		}
+
+		// ----- INKLUDER SKJEMAET -----
 
 		echo '<div class="wrap">';
 		echo '<h1>'.__('Endre åpningstider', 'bibliotider').'</h1>';
