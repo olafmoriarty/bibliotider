@@ -1,0 +1,38 @@
+.katalogkort {
+  position: relative;   
+  min-height: 2000px; /* This part sucks */
+  clear: both;
+  margin: 25px 0;
+}
+.katalogkort .tab {
+  float: left;
+}
+.katalogkort .tab label {
+  background: #eee; 
+  padding: 10px; 
+  border: 1px solid #ccc; 
+  margin-left: -1px; 
+  position: relative;
+  left: 1px; 
+}
+.katalogkort .tab [type=radio] {
+  display: none;   
+}
+.katalogkort .innhold {
+  position: absolute;
+  top: 28px;
+  left: 0;
+  background: white;
+  right: 0;
+  bottom: 0;
+  padding: 20px;
+  border: 1px solid #ccc; 
+}
+.katalogkort [type=radio]:checked ~ label {
+  background: white;
+  border-bottom: 1px solid white;
+  z-index: 2;
+}
+.katalogkort [type=radio]:checked ~ label ~ .innhold {
+  z-index: 1;
+}

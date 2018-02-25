@@ -26,6 +26,9 @@ add_action( 'widgets_init', function(){
 // Oppretter Innstillinger-side i dashboardmenyen
 add_action( 'admin_menu', array( $bibliotider, 'meny' ) );
 
+// Legger til CSS
+add_action( 'admin_enqueue_scripts', array($bibliotider, 'css_admin') );
+
 // ----- Hovedklassen -----
 
 class bibliotider {
@@ -37,6 +40,12 @@ class bibliotider {
 		global $wpdb;
 		$this->wpdb = $wpdb;
 		$this->tabnavn = $wpdb->prefix.'bibliotider';
+	}
+
+	// Legg til CSS for innstillingssidene
+	function css_admin() {
+		wp_register_style( 'bibliotider-admin-css', plugins_url( 'admin.css', __FILE__ ) );
+		wp_enqueue_style( 'bibliotider-admin-css' );
 	}
 
 	// ----- Opprett MySQL-tabellene -----
@@ -180,7 +189,13 @@ class bibliotider {
 	// ----- Legg administrasjonssiden for scriptet inn i menyen -----
 
 	function meny() {
-		add_options_page( 'Åpningstider', 'Bibliotekets åpningstider', 'manage_options', 'bibliotider.php', array($this, 'innstillinger') );
+		$sidetittel = __('Åpningstider', 'bibliotider');
+		$menytittel = __('Åpningstider', 'bibliotider');
+		$tilganger = 'manage_options';
+		$menyslug = 'bibliotider';
+		$funksjon = array($this, 'innstillinger');
+
+		add_options_page( $sidetittel, $menytittel, $tilganger, $menyslug, $funksjon );
 	}
 
 	// ----- Innstillinger -----
@@ -224,7 +239,7 @@ class bibliotider {
 			wp_die( __( 'Du har ikke tilstrekkelig tilgang til å vise innholdet på denne siden.' ), 'bibliotider' );
 		}
 
-		elseif (isset($_POST['form_submitted'])) {
+		if (isset($_POST['submit_standardtider'])) {
 			// NB legg til masse validering
 
 			// Filial
@@ -281,55 +296,8 @@ class bibliotider {
 		echo '<div class="wrap">';
 		echo '<h1>'.__('Endre åpningstider', 'bibliotider').'</h1>';
 
-		echo '<form method="post" action="">';
+		include('skjema.php');
 
-		$eksplodert_tid = explode('-', date('Y-m-d'));
-		$gitt_ukedag = date('N');
-
-		for ($i = 0; $i < $antall_filialer; $i++) {
-			echo '<h2>'.$filialer[$i].'</h2>';
-			for ($j = 0; $j < $antall_perioder; $j++) {
-				$faktisk_p = $perioder[$j]['id'];
-
-				echo '<h3>'.sprintf(__('%1$s (fra %2$s til %3$s)', 'bibliotider'), $perioder[$j]['navn'], date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$j]['startdato'])), date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$j]['sluttdato']))).'</h3>';
-
-				echo '<table>';
-
-				// Headerrad
-				echo '<tr>';
-				echo '<th>'.__('Dag', 'bibliotider').'</th>';
-				for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
-					echo '<th>'.$betjenttyper[$h][0].'</th>';
-				}
-				echo '</tr>';
-
-				for ( $d = 1; $d <= 7; $d++) {
-					$dagtid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2] - $gitt_ukedag + $d, $eksplodert_tid[0] );
-					$dag = date( 'Y-m-d', $dagtid );
-
-					echo '<tr>';
-					echo '<td>';
-					echo date_i18n( __('l', 'bibliotider'), $dagtid );
-					echo '</td>';
-
-					// Hent info om denne dagens åpningstider
-					for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
-						echo '<td>';
-						echo '<input type="time" name="f-'.$i.'-p-'.$j.'-d-'.$d.'-b-'.$h.'-start" value="'.$verdier[$i][$j][$d][$h]['starttid'].'" />';
-						echo '&ndash;';
-						echo '<input type="time" name="f-'.$i.'-p-'.$j.'-d-'.$d.'-b-'.$h.'-slutt" value="'.$verdier[$i][$j][$d][$h]['sluttid'].'" />';
-						echo '</td>';
-					}
-					echo '</tr>';
-
-
-				}
-
-				echo '</table>';
-			}
-		}
-		echo '<p><input type="hidden" name="form_submitted" value="1"><input type="submit" value="'.__('Lagre endringer', 'bibliotider').'" /></p>';
-		echo '</form>';
 		echo '</div>';
 	}
 
