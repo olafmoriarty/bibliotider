@@ -469,9 +469,9 @@ class Bibliotider_Widget extends WP_Widget {
 		// outputs the content of the widget
 		global $bibliotider;
 		echo '<section class="widget widget-bibliotider">';
+		echo '<h4 class="widgettitle">'.__('Åpningstider', 'bibliotider').'</h4>';
 		$bibliotider->dagsvisning(date('Y-m-d'));
 		echo '</section>';
-//		echo $bibliotider->uke(date('Y-m-d'));
 	}
 
 	/**
