@@ -69,7 +69,44 @@
 		?>
 	</section>
     <section class="tab-panel">
+		<?php
+			echo '<form method="post" action="">';
+			echo '<h2>Registrer unntak</h2>';
+			echo '<p>'.__('Filial:', 'bibliotider').'<br/>';
+			echo '<select name="filial">';
+			for ($i = 0; $i < $antall_filialer; $i++) {
+				echo '<option value="'.$i.'">'.$filialer[$i].'</option>';
+			}
+			echo '</select>';
+			echo '</p>';
+			echo '<p>'.__('Fra dato:', 'bibliotider').'<br/>';
+			echo '<input type="date" name="startdato" /></p>'."\n";
+			echo '<p>'.__('Til dato:', 'bibliotider').'<br/>';
+			echo '<input type="date" name="sluttdato" /></p>'."\n";
 
+			echo '<table class="apningstider">';
+
+			// Headerrad
+			echo '<tr>';
+			for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
+				echo '<th>'.$betjenttyper[$h][0].'</th>';
+			}
+			echo '</tr>';
+
+			for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
+				echo '<td>';
+				echo '<input type="time" name="'.$h.'-start" />';
+				echo '&ndash;';
+				echo '<input type="time" name="'.$h.'-slutt" />';
+				echo '</td>';
+			}
+
+			echo '</table>';
+
+			echo '<p><input type="hidden" name="fane_sendt_inn" value="unntak"><input type="submit" value="'.__('Lagre unntak', 'bibliotider').'" /></p>';
+			echo '</form>';
+			echo '<h2>'.__('Registrerte unntak', 'bibliotider').'</h2>';
+		?>
     </section>
     <section class="tab-panel">
 

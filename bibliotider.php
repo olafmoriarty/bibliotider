@@ -147,6 +147,12 @@ class bibliotider {
 		return $result;
 	}
 
+	// ----- Sjekk om oppgitt tekststreng er en gyldig dato i YYYY-MM-DD -----
+	function er_gyldig_dato($dato) {
+		$dt = DateTime::createFromFormat("Y-m-d", $dato);
+		return $dt !== false && !array_sum($dt->getLastErrors());
+	}
+
 	// ----- Skriv ut en tabell over åpningstidene for en bestemt uke -----
 
 	function uke($dato, $filial = 0) {
