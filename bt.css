@@ -1,1 +1,5 @@
-.betjenttype_naa {color: #00aa00; font-weight: bold; font-size: 200%; text-align: center;}
+.vi_er_naa {text-align: center; margin: 0;}
+.vis_betjenttype {background: #efffef; border-radius: 10px; padding: 5px; margin-bottom: 30px;}
+.betjenttype_stengt {background: #ffefef;}
+.betjenttype_naa {color: #00aa00; font-weight: bold; font-size: 200%; text-align: center; margin: 0;}
+.betjenttype_stengt .betjenttype_naa {color: #aa0000;}

@@ -30,6 +30,14 @@ add_action( 'admin_menu', array( $bibliotider, 'meny' ) );
 add_action( 'wp_enqueue_scripts', array($bibliotider, 'css_hoved') );
 add_action( 'admin_enqueue_scripts', array($bibliotider, 'css_admin') );
 
+// Oppretter side for åpningstider
+add_filter('the_content', array($bibliotider, 'vis_tider'));
+
+
+
+
+
+
 // ----- Hovedklassen -----
 
 class bibliotider {
@@ -124,12 +132,12 @@ class bibliotider {
 		$aar = substr($dato, 0, 4);
 
 		// Finn unntak
-		$query = 'SELECT betjent, u_starttid AS starttid, u_sluttid AS sluttid, u_navn AS navn FROM '.$this->tabnavn.' WHERE filial = '.$filial.' AND \''.$dato.'\' BETWEEN u_startdato AND u_sluttdato ORDER BY betjent';
+		$query = 'SELECT betjent, TIME_FORMAT(u_starttid, \'%H:%i\') AS starttid, TIME_FORMAT(u_sluttid, \'%H:%i\') AS sluttid, u_navn AS navn FROM '.$this->tabnavn.' WHERE filial = '.$filial.' AND \''.$dato.'\' BETWEEN u_startdato AND u_sluttdato ORDER BY betjent';
 
 		$result = $wpdb->get_results( $query, OBJECT_K );
 
 		if (0 == $result->num_rows) {
-			$query = 'SELECT t.betjent, t.starttid, t.sluttid, p.navn FROM '.$this->tabnavn.' AS t LEFT JOIN '.$this->tabnavn.'_perioder AS p ON t.periode = p.id WHERE t.filial = '.$filial.' AND ((p.startdato <= p.sluttdato AND \''.$dato.'\' BETWEEN DATE_FORMAT(p.startdato, \''.$aar.'-%m-%d\') AND DATE_FORMAT(p.sluttdato, \''.$aar.'-%m-%d\')) OR (p.startdato > p.sluttdato AND (\''.$dato.'\' >= DATE_FORMAT(p.startdato, \''.$aar.'-%m-%d\') OR \''.$dato.'\' <= DATE_FORMAT(p.sluttdato, \''.$aar.'-%m-%d\')))) AND t.ukedag = WEEKDAY(\''.$dato.'\') + 1';
+			$query = 'SELECT t.betjent, TIME_FORMAT(t.starttid, \'%H:%i\') AS starttid, TIME_FORMAT(t.sluttid, \'%H:%i\') AS sluttid, p.navn FROM '.$this->tabnavn.' AS t LEFT JOIN '.$this->tabnavn.'_perioder AS p ON t.periode = p.id WHERE t.filial = '.$filial.' AND ((p.startdato <= p.sluttdato AND \''.$dato.'\' BETWEEN DATE_FORMAT(p.startdato, \''.$aar.'-%m-%d\') AND DATE_FORMAT(p.sluttdato, \''.$aar.'-%m-%d\')) OR (p.startdato > p.sluttdato AND (\''.$dato.'\' >= DATE_FORMAT(p.startdato, \''.$aar.'-%m-%d\') OR \''.$dato.'\' <= DATE_FORMAT(p.sluttdato, \''.$aar.'-%m-%d\')))) AND t.ukedag = WEEKDAY(\''.$dato.'\') + 1';
 
 			$result = $wpdb->get_results( $query, OBJECT_K );
 		}
@@ -139,8 +147,7 @@ class bibliotider {
 	// ----- Skriv ut en tabell over åpningstidene for en bestemt uke -----
 
 	function uke($dato, $filial = 0) {
-		global $wpdb;
-		$res = $wpdb->get_results('SELECT * FROM '.$this->tabnavn.' AS t LEFT JOIN '.$this->tabnavn.'_perioder AS p ON t.periode = p.id');
+
 		// Typer åpningstid
 		$betjent_typer = get_option('bibliotider_betjent');
 		$antall_typer = count($betjent_typer);
@@ -195,23 +202,50 @@ class bibliotider {
 	}
 
 	function dagsvisning($dato, $filial = 0) {
-		echo '<section class="widget widget-bibliotider">';
 		$dagtider = $this->dag($dato, $filial);
 		$filialnavn = get_option('bibliotider_filialer');
 		$betjenttyper = get_option('bibliotider_betjent');
-		echo '<p class="">'.sprintf(__('%s er nå', 'bibliotider'), $filialnavn[$filial]).'</p>';
 		$tid_naa = '';
+		$tidtabell = '';
 		$klokka_er = date('H:i:s');
 		foreach($dagtider as $bt => $dagobjekt) {
 			if (!$tid_naa && $klokka_er >= $dagobjekt->starttid && $klokka_er < $dagobjekt->sluttid) {
 				$tid_naa = $betjenttyper[$bt - 1][0];
 			}
+			$tidtabell .= '<tr><td class="betjenttype">'.$betjenttyper[$bt - 1][0].'</td><td>'.$dagobjekt->starttid.'&ndash;'.$dagobjekt->sluttid.'</td></tr>';
+
 		}
+		echo '<div class="vis_betjenttype';
 		if (!$tid_naa) {
-			$tid_naa = __('Stengt', 'bibliotider');
+			echo ' betjenttype_stengt';
+			$tid_naa = 'Stengt';
 		}
-		echo '<p class="betjenttype_naa">'.$tid_naa.'</p>';
-		echo '</section>'."\n";
+		echo '">';
+		echo '<p class="vi_er_naa">'.sprintf(__('%s er nå', 'bibliotider'), $filialnavn[$filial]).'</p>';
+
+		echo '<p class="betjenttype_naa">'.$tid_naa.'</p>'."\n";
+		echo '</div>';
+		if ($tidtabell) {
+			echo '<p><strong>'.__('Åpningstider i dag:', 'bibliotider').'</strong></p>';
+			echo '<table class="bibliotider_tabell">'.$tidtabell.'</table>';
+		}
+
+		// Neste dag
+		$dagtider = $this->dag(date('Y-m-d', $dato.' + 1 day'), $filial);
+		$tidtabell = '';
+		foreach($dagtider as $bt => $dagobjekt) {
+			$tidtabell .= '<tr><td class="betjenttype">'.$betjenttyper[$bt - 1][0].'</td><td>'.$dagobjekt->starttid.'&ndash;'.$dagobjekt->sluttid.'</td></tr>';
+		}
+		if ($tidtabell) {
+			echo '<p><strong>'.__('Åpningstider i morgen:', 'bibliotider').'</strong></p>';
+			echo '<table class="bibliotider_tabell">'.$tidtabell.'</table>';
+		}
+
+		$slug = get_option('bibliotider_side');
+		if ($slug) {
+			echo '<p><a href="'.get_page_link(get_page_by_path($slug)).'">'.__('Alle åpningstider ...').'</a></p>';
+		}
+
 	}
 
 	// ----- Legg administrasjonssiden for scriptet inn i menyen -----
@@ -374,6 +408,9 @@ class bibliotider {
 				$antall_betjenttyper = $antall_betjenttyper_ny;
 			}
 		}
+		elseif (isset($_POST['fane_sendt_inn']) && $_POST['fane_sendt_inn'] == 'innstillinger') {
+			update_option('bibliotider_side', $_POST['slug'] );
+		}
 
 		// ----- INKLUDER SKJEMAET -----
 
@@ -383,6 +420,18 @@ class bibliotider {
 		include('skjema.php');
 
 		echo '</div>';
+	}
+
+	function vis_tider($innhold) {
+		if (get_option('bibliotider_side') && is_page(get_option('bibliotider_side'))) {
+			echo '<h2>'.__('Åpningstider denne uka:', 'bibliotider').'</h2>';
+			$this->uke(date('Y-m-d'));
+			echo '<h2>'.__('Avvik den nærmeste måneden:', 'bibliotider').'</h2>';
+			echo '<p>Ingen avvik registrert</p>';
+		}
+		else {
+			return $innhold;
+		}
 	}
 
 }
@@ -411,7 +460,9 @@ class Bibliotider_Widget extends WP_Widget {
 	public function widget( $args, $instance ) {
 		// outputs the content of the widget
 		global $bibliotider;
-		echo $bibliotider->dagsvisning(date('Y-m-d'));
+		echo '<section class="widget widget-bibliotider">';
+		$bibliotider->dagsvisning(date('Y-m-d'));
+		echo '</section>';
 //		echo $bibliotider->uke(date('Y-m-d'));
 	}
 

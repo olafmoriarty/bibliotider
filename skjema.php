@@ -9,6 +9,8 @@
 <label for="tab4"><?php _e('Perioder', 'bibliotider'); ?></label>
 <input type="radio" name="katalogkort" id="tab5">
 <label for="tab5"><?php _e('Typer åpningstid', 'bibliotider'); ?></label>
+<input type="radio" name="katalogkort" id="tab6">
+<label for="tab6"><?php _e('Innstillinger', 'bibliotider'); ?></label>
 
   <div class="tab-panels">
     <section class="tab-panel">
@@ -107,6 +109,15 @@
 		echo '</form>';
 	?>
 
+    </section>
+    <section class="tab-panel">
+	<?php
+		// ANDRE INNSTILLINGER
+		echo '<form method="post" action="">';
+		echo '<p>'.__('Slug til Åpningstider-side:', 'bibliotider').'<br /><input type="text" name="slug" value="'.get_option('bibliotider_side').'"></p>';
+		echo '<p><input type="hidden" name="fane_sendt_inn" value="innstillinger"><input type="submit" value="'.__('Lagre endringer', 'bibliotider').'" /></p>';
+		echo '</form>';
+	?>
     </section>
   </div>
   
