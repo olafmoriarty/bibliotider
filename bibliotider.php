@@ -1,7 +1,7 @@
 <?php
 
 /*
-Plugin Name:  Bibliotekets åpningstider og reservering av grupperom
+Plugin Name:  Bibliotekets åpningstider
 Plugin URI:   https://github.com/olafmoriarty/bibliotider/
 Description:  Registrering og visning av åpningstider, tilpasset bibliotek. Skiller mellom betjent, selvbetjent og meråpent.
 Version:      0.0.1
@@ -45,6 +45,9 @@ class bibliotider {
 	// Wordpress-databasen (settes i tabnavn)
 	var $tabnavn;
 
+	// Er vis_tider() kjørt?
+	var $vis_tider_kjort;
+	
 	public function __construct() {
 		global $wpdb;
 		$this->wpdb = $wpdb;
@@ -147,7 +150,8 @@ class bibliotider {
 	// ----- Skriv ut en tabell over åpningstidene for en bestemt uke -----
 
 	function uke($dato, $filial = 0) {
-
+		$c = '';
+		
 		// Typer åpningstid
 		$betjent_typer = get_option('bibliotider_betjent');
 		$antall_typer = count($betjent_typer);
@@ -160,45 +164,46 @@ class bibliotider {
 		// Hvilken ukedag har vi?
 		$gitt_ukedag = date('N', $datotid);
 
-		echo '<table>';
+		$c .= '<table>';
 
 		// Headerrad
-		echo '<tr>';
-		echo '<th>'.__('Dag', 'bibliotider').'</th>';
+		$c .=  '<tr>';
+		$c .=  '<th>'.__('Dag', 'bibliotider').'</th>';
 		for ( $i = 0; $i < $antall_typer; $i++ ) {
-			echo '<th>'.$betjent_typer[$i][0].'</th>';
+			$c .=  '<th>'.$betjent_typer[$i][0].'</th>';
 		}
-		echo '</tr>';
+		$c .=  '</tr>';
 
 		for ( $d = 1; $d <= 7; $d++) {
 			$dagtid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2] - $gitt_ukedag + $d, $eksplodert_tid[0] );
 			$dag = date( 'Y-m-d', $dagtid );
 
-			echo '<tr>';
-			echo '<td>';
-			echo date_i18n( __('l d.m.', 'bibliotider'), $dagtid );
-			echo '</td>';
+			$c .=  '<tr>';
+			$c .=  '<td>';
+			$c .=  date_i18n( __('l d.m.', 'bibliotider'), $dagtid );
+			$c .=  '</td>';
 
 			// Hent info om denne dagens åpningstider
 			$dagtider = $this->dag($dag, $filial);
 				for ( $i = 0; $i < $antall_typer; $i++ ) {
-					echo '<td>';
+					$c .=  '<td>';
 					if (isset($dagtider[$i + 1])) {
-						echo substr($dagtider[$i + 1]->starttid, 0, 5);
-						echo '&ndash;';
-						echo substr($dagtider[$i + 1]->sluttid, 0, 5);
+						$c .=  substr($dagtider[$i + 1]->starttid, 0, 5);
+						$c .=  '&ndash;';
+						$c .=  substr($dagtider[$i + 1]->sluttid, 0, 5);
 					}
 					else {
-						echo '&ndash;';
+						$c .=  '&ndash;';
 					}
-					echo '</td>';
+					$c .=  '</td>';
 				}
-			echo '</tr>';
+			$c .=  '</tr>';
 
 
 		}
 
-		echo '</table>';
+		$c .=  '</table>';
+		return $c;
 	}
 
 	function dagsvisning($dato, $filial = 0) {
@@ -423,11 +428,14 @@ class bibliotider {
 	}
 
 	function vis_tider($innhold) {
-		if (get_option('bibliotider_side') && is_page(get_option('bibliotider_side'))) {
-			echo '<h2>'.__('Åpningstider denne uka:', 'bibliotider').'</h2>';
-			$this->uke(date('Y-m-d'));
-			echo '<h2>'.__('Avvik den nærmeste måneden:', 'bibliotider').'</h2>';
-			echo '<p>Ingen avvik registrert</p>';
+		if (get_option('bibliotider_side') && is_page(get_option('bibliotider_side')) && !$this->vis_tider_kjort) {
+			$this->vis_tider_kjort = true;
+			$c = '';
+			$c .=  '<h2>'.__('Åpningstider denne uka:', 'bibliotider').'</h2>';
+			$c .= $this->uke(date('Y-m-d'));
+			$c .=  '<h2>'.__('Avvik den nærmeste måneden:', 'bibliotider').'</h2>';
+			$c .=  '<p>Ingen avvik registrert</p>';
+			return $c;
 		}
 		else {
 			return $innhold;
