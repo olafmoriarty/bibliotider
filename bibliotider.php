@@ -27,6 +27,7 @@ add_action( 'widgets_init', function(){
 add_action( 'admin_menu', array( $bibliotider, 'meny' ) );
 
 // Legger til CSS
+add_action( 'wp_enqueue_scripts', array($bibliotider, 'css_hoved') );
 add_action( 'admin_enqueue_scripts', array($bibliotider, 'css_admin') );
 
 // ----- Hovedklassen -----
@@ -47,6 +48,13 @@ class bibliotider {
 		wp_register_style( 'bibliotider-admin-css', plugins_url( 'admin.css', __FILE__ ) );
 		wp_enqueue_style( 'bibliotider-admin-css' );
 	}
+
+	// Legg til CSS for publikumssidene
+	function css_hoved() {
+		wp_register_style( 'bibliotider-css', plugins_url( 'bt.css', __FILE__ ) );
+		wp_enqueue_style( 'bibliotider-css' );
+	}
+
 
 	// ----- Opprett MySQL-tabellene -----
 
@@ -184,6 +192,26 @@ class bibliotider {
 		}
 
 		echo '</table>';
+	}
+
+	function dagsvisning($dato, $filial = 0) {
+		echo '<section class="widget widget-bibliotider">';
+		$dagtider = $this->dag($dato, $filial);
+		$filialnavn = get_option('bibliotider_filialer');
+		$betjenttyper = get_option('bibliotider_betjent');
+		echo '<p class="">'.sprintf(__('%s er nå', 'bibliotider'), $filialnavn[$filial]).'</p>';
+		$tid_naa = '';
+		$klokka_er = date('H:i:s');
+		foreach($dagtider as $bt => $dagobjekt) {
+			if (!$tid_naa && $klokka_er >= $dagobjekt->starttid && $klokka_er < $dagobjekt->sluttid) {
+				$tid_naa = $betjenttyper[$bt - 1][0];
+			}
+		}
+		if (!$tid_naa) {
+			$tid_naa = __('Stengt', 'bibliotider');
+		}
+		echo '<p class="betjenttype_naa">'.$tid_naa.'</p>';
+		echo '</section>'."\n";
 	}
 
 	// ----- Legg administrasjonssiden for scriptet inn i menyen -----
@@ -383,7 +411,8 @@ class Bibliotider_Widget extends WP_Widget {
 	public function widget( $args, $instance ) {
 		// outputs the content of the widget
 		global $bibliotider;
-		echo $bibliotider->uke(date('Y-m-d'));
+		echo $bibliotider->dagsvisning(date('Y-m-d'));
+//		echo $bibliotider->uke(date('Y-m-d'));
 	}
 
 	/**
