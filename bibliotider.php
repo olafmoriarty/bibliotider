@@ -218,7 +218,7 @@ class bibliotider {
 		$betjenttyper = get_option('bibliotider_betjent');
 		$tid_naa = '';
 		$tidtabell = '';
-		$klokka_er = date('H:i:s');
+		$klokka_er = current_time('H:i:s');
 		foreach($dagtider as $bt => $dagobjekt) {
 			if (!$tid_naa && $klokka_er >= $dagobjekt->starttid && $klokka_er < $dagobjekt->sluttid) {
 				$tid_naa = $betjenttyper[$bt - 1][0];
@@ -242,7 +242,7 @@ class bibliotider {
 		}
 
 		// Neste dag
-		$dagtider = $this->dag(date('Y-m-d', $dato.' + 1 day'), $filial);
+		$dagtider = $this->dag(date('Y-m-d', strtotime($dato.' + 1 day')), $filial);
 		$tidtabell = '';
 		foreach($dagtider as $bt => $dagobjekt) {
 			$tidtabell .= '<tr><td class="betjenttype">'.$betjenttyper[$bt - 1][0].'</td><td>'.$dagobjekt->starttid.'&ndash;'.$dagobjekt->sluttid.'</td></tr>';
