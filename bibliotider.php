@@ -38,127 +38,81 @@ add_filter( 'the_content', array( $bibliotider, 'vis_tider' ) );
 
 
 
-// ----- Hovedklassen -----
-
+/**
+ * Håndterer bibliotekets åpningstider.
+ *
+ * Klassen inneholder alle metodene i pluginen. NB: Ikke kall metodene i klassen
+ * direkte. Vennligst bruk den globale variabelen $bibliotider i stedet for.
+ *
+ * @since 0.0.1
+*/
 class Bibliotider {
 
-	// Wordpress-databasen (settes i tabnavn)
+	/**
+	 * Navn på hovedtabellen i MySQL.
+	 *
+	 * @since 0.0.1
+	 * @var string $tabnavn
+	 */
 	var $tabnavn;
 
-	// Er vis_tider() kjørt?
+
+
+	/**
+	 * Hvorvidt metoden vis_tider() allerede har kjørt.
+	 *
+	 * @since 0.0.1
+	 * @var boolean $vis_tider_kjort
+	 */
 	var $vis_tider_kjort;
-	
+
+
+	/**
+	 * Klassekonstruktor.
+	 *
+	 * Henter databasetabellprefiks fra $wpdb and og bruker det til å sette 
+	 * $vis_tider_kjort.
+	 *
+	 * @since 0.0.1
+	 */
 	public function __construct() {
 		global $wpdb;
-		$this->wpdb = $wpdb;
 		$this->tabnavn = $wpdb->prefix . 'bibliotider';
 	}
 
-	// Legg til CSS for innstillingssidene
+// A
+// B
+// C
+
+	/**
+	 * Legger til CSS på innstillingssidene.
+	 */
 	function css_admin() {
 		wp_register_style( 'bibliotider-admin-css', plugins_url( 'admin.css', __FILE__ ) );
 		wp_enqueue_style( 'bibliotider-admin-css' );
 	}
 
-	// Legg til CSS for publikumssidene
+	/**
+	 * Legger til CSS på publikumssidene.
+	 */
 	function css_hoved() {
 		wp_register_style( 'bibliotider-css', plugins_url( 'bt.css', __FILE__ ) );
 		wp_enqueue_style( 'bibliotider-css' );
 	}
 
+// D
 
-	// ----- Opprett MySQL-tabellene -----
-
-	function mysql_install() {
-		global $wpdb;
-
-		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-		$charset_collate = $wpdb->get_charset_collate();
-
-		// Tabell over tider for gitte tidspunkter
-		$tabell = $this->tabnavn;
-
-		$sql = "CREATE TABLE $tabell (
-		  id mediumint(9) NOT NULL AUTO_INCREMENT,
-		  filial tinyint(3) NOT NULL,
-		  periode tinyint(3) NOT NULL,
-		  betjent tinyint(3) NOT NULL,
-		  ukedag tinyint(1) NOT NULL,
-		  starttid time DEFAULT '00:00:00' NOT NULL,
-		  sluttid time DEFAULT '00:00:00' NOT NULL,
-		  u_navn varchar(100) NOT NULL,
-		  u_startdato date DEFAULT '0000-00-00' NOT NULL,
-		  u_sluttdato date DEFAULT '0000-00-00' NOT NULL,
-		  PRIMARY KEY  (id)
-		) $charset_collate;";
-		dbDelta( $sql );
-
-		// Tabell over perioder (sommertid/vintertid)
-		$tabell = $this->tabnavn . '_perioder';
-		$sql = "CREATE TABLE $tabell (
-		  id mediumint(9) NOT NULL AUTO_INCREMENT,
-		  navn varchar(100) NOT NULL,
-		  startdato date DEFAULT '0000-00-00' NOT NULL,
-		  sluttdato date DEFAULT '0000-00-00' NOT NULL,
-		  PRIMARY KEY  (id)
-		) $charset_collate;";
-		dbDelta( $sql );
-
-		// Versjonskontroll
-		update_option( 'bibliotider_tabellversjon', '0.1' );
-
-		// Legger til default informasjon om perioder dersom tabellen er tom
-		$num = $wpdb->get_var( 'SELECT COUNT(*) FROM ' . $this->tabnavn . '_perioder' );
-		if ( ! $num ) {
-			$wpdb->insert(
-				$this->tabnavn . '_perioder', 
-				array( 
-					'navn'      => __( 'Vintertid', 'bibliotider' ), 
-					'startdato' => '2012-09-01', 
-					'sluttdato' => '2012-06-30' 
-				) 
-			);
-			$wpdb->insert(
-				$this->tabnavn . '_perioder', 
-				array( 
-					'navn' => __( 'Sommertid', 'bibliotider' ), 
-					'startdato' => '2012-06-01', 
-					'sluttdato' => '2012-08-31' 
-				) 
-			);
-		}
-
-		if ( ! get_option( 'bibliotider_filialer' ) ) {
-			// Legger default liste over filialer i options
-			update_option( 'bibliotider_filialer', array( __( 'Hovedbiblioteket', 'bibliotider' ) ) );
-		}
-
-		if ( ! get_option( 'bibliotider_betjent' ) ) {
-			// Legger default liste over typer åpningstid i options
-			update_option( 
-				'bibliotider_betjent', 
-				array(
-					array(
-						__('Selvbetjent', 'bibliotider'), 
-						__('Biblioteket er åpent for alle, men skranken og telefonen er ikke betjent.', 'bibliotider')
-					),
-					array(
-						__('Betjent', 'bibliotider'), 
-						__('Biblioteket er åpent for alle!', 'bibliotider')
-					),
-					array(
-						__('Meråpent', 'bibliotider'), 
-						__('Biblioteket er stengt, men brukere som har inngått avtale om tilgang til Meråpent bibliotek kan låse seg inn med lånekortet og benytte biblioteket.', 'bibliotider')
-					) 
-				) 
-			);
-		}
-
-	}
-
-	// ----- Finn åpningstidene for en bestemt dag -----
-	
-	function dag( $dato, $filial = 1 ) {
+	/**
+	 * Henter ut åpningstidene for en oppgitt dag.
+	 *
+	 * @param  string $dato   Dato i YYYY-MM-DD-format.
+	 * @param  int    $filial Valgfri. Filial-ID-en det skal hentes ut 
+	 *                        åpningstider for. Standardverdi er hovedfilial.
+	 * @return array  Matrise av objekter der hvert objekt inneholder starttid
+	 *                og sluttid for en type åpningstid. Matrisenøkkelen
+	 *                tilsvarer betjenttype.
+	 */
+	function dag( $dato, $filial = 0 ) {
 		global $wpdb;
 
 		// $dato må være i formatet '2018-02-28'
@@ -171,78 +125,36 @@ class Bibliotider {
 
 		if (0 == $result->num_rows) {
 			$query = 'SELECT t.betjent, TIME_FORMAT(t.starttid, \'%H:%i\') AS starttid, TIME_FORMAT(t.sluttid, \'%H:%i\') AS sluttid, p.navn FROM ' . $this->tabnavn . ' AS t LEFT JOIN ' . $this->tabnavn . '_perioder AS p ON t.periode = p.id WHERE t.filial = ' . $filial . ' AND ((p.startdato <= p.sluttdato AND \'' . $dato . '\' BETWEEN DATE_FORMAT(p.startdato, \'' . $aar . '-%m-%d\') AND DATE_FORMAT(p.sluttdato, \'' . $aar . '-%m-%d\')) OR (p.startdato > p.sluttdato AND (\'' . $dato . '\' >= DATE_FORMAT(p.startdato, \'' . $aar . '-%m-%d\') OR \'' . $dato . '\' <= DATE_FORMAT(p.sluttdato, \'' . $aar . '-%m-%d\')))) AND t.ukedag = WEEKDAY(\'' . $dato . '\') + 1';
-
 			$result = $wpdb->get_results( $query, OBJECT_K );
 		}
 		return $result;
 	}
 
-	// ----- Sjekk om oppgitt tekststreng er en gyldig dato i YYYY-MM-DD -----
-	function er_gyldig_dato( $dato ) {
-		$dt = DateTime::createFromFormat( "Y-m-d", $dato );
-		return $dt !== false && !array_sum( $dt->getLastErrors() );
-	}
-
-	// ----- Skriv ut en tabell over åpningstidene for en bestemt uke -----
-
-	function uke( $dato, $filial = 0 ) {
+	/**
+	 * Viser dagens åpningstider.
+	 *
+	 * Returnerer, i HTML-format og klart for å vises i en widget eller
+	 * shortcode, følgende informasjon fra databasen:
+	 *
+	 * - Er biblioteket åpent nå? (Dersom vi viser dagens dato.)
+	 * - Dagens åpningstider
+	 * - Morgendagens åpningstider (Dersom parameteret $morgen ikke er satt til
+	 *   FALSE)
+	 *
+	 * @param  string  $dato   Valgfri. Dato i YYYY-MM-DD-format. Standardverdi 
+	 *                         er dagens dato.
+	 * @param  int     $filial Valgfri. Filial-ID-en det skal vises åpningstider
+	 *                         for. Standardverdi er hovedfilial.
+	 * @param  boolean $morgen Valgfri. TRUE dersom morgendagens åpningstider
+	 *                         skal vises i tillegg til dagens, FALSE dersom de
+	 *                         ikke skal det. Standardverdi er TRUE.
+	 * @return string  HTML-kode som kan printes til skjerm.
+	 */
+	function dagsvisning( $dato = '', $filial = 0, $morgen = true ) {
 		$c = '';
-		
-		// Typer åpningstid
-		$betjent_typer = get_option( 'bibliotider_betjent' );
-		$antall_typer = count( $betjent_typer );
-
-		// Konverterer gitt dato til timestamp
-
-		$eksplodert_tid = explode( '-', $dato );
-		$datotid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2], $eksplodert_tid[0] );
-
-		// Hvilken ukedag har vi?
-		$gitt_ukedag = date( 'N', $datotid );
-
-		$c .= '<table>';
-
-		// Headerrad
-		$c .=  '<tr>';
-		$c .=  '<th>' . __( 'Dag', 'bibliotider' ) . '</th>';
-		for ( $i = 0; $i < $antall_typer; $i++ ) {
-			$c .=  '<th>' . $betjent_typer[ $i ][0] . '</th>';
+		if ( ! $dato ) {
+			$dato = current_time( 'Y-m-d' );
 		}
-		$c .=  '</tr>';
-
-		for ( $d = 1; $d <= 7; $d++) {
-			$dagtid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2] - $gitt_ukedag + $d, $eksplodert_tid[0] );
-			$dag = date( 'Y-m-d', $dagtid );
-
-			$c .=  '<tr>';
-			$c .=  '<td>';
-			$c .=  date_i18n( __( 'l d.m.', 'bibliotider' ), $dagtid );
-			$c .=  '</td>';
-
-			// Hent info om denne dagens åpningstider
-			$dagtider = $this->dag( $dag, $filial );
-				for ( $i = 0; $i < $antall_typer; $i++ ) {
-					$c .=  '<td>';
-					if ( isset( $dagtider[ $i + 1 ] ) ) {
-						$c .=  substr( $dagtider[ $i + 1 ]->starttid, 0, 5 );
-						$c .=  '&ndash;';
-						$c .=  substr( $dagtider[ $i + 1 ]->sluttid, 0, 5 );
-					}
-					else {
-						$c .=  '&ndash;';
-					}
-					$c .=  '</td>';
-				}
-			$c .=  '</tr>';
-
-
-		}
-
-		$c .=  '</table>';
-		return $c;
-	}
-
-	function dagsvisning( $dato, $filial = 0 ) {
 		$dagtider = $this->dag( $dato, $filial );
 		$filialnavn = get_option( 'bibliotider_filialer' );
 		$betjenttyper = get_option( 'bibliotider_betjent' );
@@ -256,19 +168,22 @@ class Bibliotider {
 			$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[ $bt - 1 ][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
 
 		}
-		echo '<div class="vis_betjenttype';
-		if ( ! $tid_naa ) {
-			echo ' betjenttype_stengt';
-			$tid_naa = 'Stengt';
-		}
-		echo '">';
-		echo '<p class="vi_er_naa">' . sprintf( __( '%s er nå', 'bibliotider' ), $filialnavn[ $filial ] ) . '</p>';
 
-		echo '<p class="betjenttype_naa">' . $tid_naa . '</p>' . "\n";
-		echo '</div>';
+		if ( $dato == current_time( 'Y-m-d' ) ) {
+			$c .= '<div class="vis_betjenttype';
+			if ( ! $tid_naa ) {
+				$c .= ' betjenttype_stengt';
+				$tid_naa = 'Stengt';
+			}
+			$c .= '">';
+			$c .= '<p class="vi_er_naa">' . sprintf( __( '%s er nå', 'bibliotider' ), $filialnavn[ $filial ] ) . '</p>';
+
+			$c .= '<p class="betjenttype_naa">' . $tid_naa . '</p>' . "\n";
+			$c .= '</div>';
+		}
 		if ( $tidtabell ) {
-			echo '<p><strong>' . __( 'Åpningstider i dag:', 'bibliotider' ) . '</strong></p>';
-			echo '<table class="bibliotider_tabell">' . $tidtabell . '</table>';
+			$c .= '<p><strong>' . __( 'Åpningstider i dag:', 'bibliotider' ) . '</strong></p>';
+			$c .= '<table class="bibliotider_tabell">' . $tidtabell . '</table>';
 		}
 
 		// Neste dag
@@ -278,28 +193,29 @@ class Bibliotider {
 			$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[ $bt - 1 ][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
 		}
 		if ( $tidtabell ) {
-			echo '<p><strong>' . __( 'Åpningstider i morgen:', 'bibliotider' ) . '</strong></p>';
-			echo '<table class="bibliotider_tabell">' . $tidtabell . '</table>';
+			$c .= '<p><strong>' . __( 'Åpningstider i morgen:', 'bibliotider' ) . '</strong></p>';
+			$c .= '<table class="bibliotider_tabell">' . $tidtabell . '</table>';
 		}
 
 		$slug = get_option( 'bibliotider_side' );
 		if ( $slug ) {
-			echo '<p><a href="' . get_page_link( get_page_by_path( $slug ) ) . '">' . __( 'Alle åpningstider ...' , 'bibliotider' ) . '</a></p>';
+			$c .= '<p><a href="' . get_page_link( get_page_by_path( $slug ) ) . '">' . __( 'Alle åpningstider ...' , 'bibliotider' ) . '</a></p>';
 		}
-
+		return $c;
 	}
 
-	// ----- Legg administrasjonssiden for scriptet inn i menyen -----
+// E
 
-	function meny() {
-		$sidetittel = __( 'Åpningstider', 'bibliotider' );
-		$menytittel = __( 'Åpningstider', 'bibliotider' );
-		$tilganger = 'manage_options';
-		$menyslug = 'bibliotider';
-		$funksjon = array( $this, 'innstillinger' );
-
-		add_options_page( $sidetittel, $menytittel, $tilganger, $menyslug, $funksjon );
+	// ----- Sjekk om oppgitt tekststreng er en gyldig dato i YYYY-MM-DD -----
+	function er_gyldig_dato( $dato ) {
+		$dt = DateTime::createFromFormat( "Y-m-d", $dato );
+		return $dt !== false && !array_sum( $dt->getLastErrors() );
 	}
+
+// F
+// G
+// H
+// I
 
 	// ----- Innstillinger -----
 
@@ -463,6 +379,184 @@ class Bibliotider {
 		echo '</div>';
 	}
 
+// J
+// K
+// L
+// M
+
+	// ----- Legg administrasjonssiden for scriptet inn i menyen -----
+
+	function meny() {
+		$sidetittel = __( 'Åpningstider', 'bibliotider' );
+		$menytittel = __( 'Åpningstider', 'bibliotider' );
+		$tilganger = 'manage_options';
+		$menyslug = 'bibliotider';
+		$funksjon = array( $this, 'innstillinger' );
+
+		add_options_page( $sidetittel, $menytittel, $tilganger, $menyslug, $funksjon );
+	}
+
+
+	// ----- Opprett MySQL-tabellene -----
+
+	function mysql_install() {
+		global $wpdb;
+
+		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+		$charset_collate = $wpdb->get_charset_collate();
+
+		// Tabell over tider for gitte tidspunkter
+		$tabell = $this->tabnavn;
+
+		$sql = "CREATE TABLE $tabell (
+		  id mediumint(9) NOT NULL AUTO_INCREMENT,
+		  filial tinyint(3) NOT NULL,
+		  periode tinyint(3) NOT NULL,
+		  betjent tinyint(3) NOT NULL,
+		  ukedag tinyint(1) NOT NULL,
+		  starttid time DEFAULT '00:00:00' NOT NULL,
+		  sluttid time DEFAULT '00:00:00' NOT NULL,
+		  u_navn varchar(100) NOT NULL,
+		  u_startdato date DEFAULT '0000-00-00' NOT NULL,
+		  u_sluttdato date DEFAULT '0000-00-00' NOT NULL,
+		  PRIMARY KEY  (id)
+		) $charset_collate;";
+		dbDelta( $sql );
+
+		// Tabell over perioder (sommertid/vintertid)
+		$tabell = $this->tabnavn . '_perioder';
+		$sql = "CREATE TABLE $tabell (
+		  id mediumint(9) NOT NULL AUTO_INCREMENT,
+		  navn varchar(100) NOT NULL,
+		  startdato date DEFAULT '0000-00-00' NOT NULL,
+		  sluttdato date DEFAULT '0000-00-00' NOT NULL,
+		  PRIMARY KEY  (id)
+		) $charset_collate;";
+		dbDelta( $sql );
+
+		// Versjonskontroll
+		update_option( 'bibliotider_tabellversjon', '0.1' );
+
+		// Legger til default informasjon om perioder dersom tabellen er tom
+		$num = $wpdb->get_var( 'SELECT COUNT(*) FROM ' . $this->tabnavn . '_perioder' );
+		if ( ! $num ) {
+			$wpdb->insert(
+				$this->tabnavn . '_perioder', 
+				array( 
+					'navn'      => __( 'Vintertid', 'bibliotider' ), 
+					'startdato' => '2012-09-01', 
+					'sluttdato' => '2012-06-30' 
+				) 
+			);
+			$wpdb->insert(
+				$this->tabnavn . '_perioder', 
+				array( 
+					'navn' => __( 'Sommertid', 'bibliotider' ), 
+					'startdato' => '2012-06-01', 
+					'sluttdato' => '2012-08-31' 
+				) 
+			);
+		}
+
+		if ( ! get_option( 'bibliotider_filialer' ) ) {
+			// Legger default liste over filialer i options
+			update_option( 'bibliotider_filialer', array( __( 'Hovedbiblioteket', 'bibliotider' ) ) );
+		}
+
+		if ( ! get_option( 'bibliotider_betjent' ) ) {
+			// Legger default liste over typer åpningstid i options
+			update_option( 
+				'bibliotider_betjent', 
+				array(
+					array(
+						__('Selvbetjent', 'bibliotider'), 
+						__('Biblioteket er åpent for alle, men skranken og telefonen er ikke betjent.', 'bibliotider')
+					),
+					array(
+						__('Betjent', 'bibliotider'), 
+						__('Biblioteket er åpent for alle!', 'bibliotider')
+					),
+					array(
+						__('Meråpent', 'bibliotider'), 
+						__('Biblioteket er stengt, men brukere som har inngått avtale om tilgang til Meråpent bibliotek kan låse seg inn med lånekortet og benytte biblioteket.', 'bibliotider')
+					) 
+				) 
+			);
+		}
+
+	}
+
+
+// N
+// O
+// P
+// Q
+// R
+// S
+// T
+// U
+
+	// ----- Skriv ut en tabell over åpningstidene for en bestemt uke -----
+
+	function uke( $dato, $filial = 0 ) {
+		$c = '';
+		
+		// Typer åpningstid
+		$betjent_typer = get_option( 'bibliotider_betjent' );
+		$antall_typer = count( $betjent_typer );
+
+		// Konverterer gitt dato til timestamp
+
+		$eksplodert_tid = explode( '-', $dato );
+		$datotid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2], $eksplodert_tid[0] );
+
+		// Hvilken ukedag har vi?
+		$gitt_ukedag = date( 'N', $datotid );
+
+		$c .= '<table>';
+
+		// Headerrad
+		$c .=  '<tr>';
+		$c .=  '<th>' . __( 'Dag', 'bibliotider' ) . '</th>';
+		for ( $i = 0; $i < $antall_typer; $i++ ) {
+			$c .=  '<th>' . $betjent_typer[ $i ][0] . '</th>';
+		}
+		$c .=  '</tr>';
+
+		for ( $d = 1; $d <= 7; $d++) {
+			$dagtid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2] - $gitt_ukedag + $d, $eksplodert_tid[0] );
+			$dag = date( 'Y-m-d', $dagtid );
+
+			$c .=  '<tr>';
+			$c .=  '<td>';
+			$c .=  date_i18n( __( 'l d.m.', 'bibliotider' ), $dagtid );
+			$c .=  '</td>';
+
+			// Hent info om denne dagens åpningstider
+			$dagtider = $this->dag( $dag, $filial );
+				for ( $i = 0; $i < $antall_typer; $i++ ) {
+					$c .=  '<td>';
+					if ( isset( $dagtider[ $i + 1 ] ) ) {
+						$c .=  substr( $dagtider[ $i + 1 ]->starttid, 0, 5 );
+						$c .=  '&ndash;';
+						$c .=  substr( $dagtider[ $i + 1 ]->sluttid, 0, 5 );
+					}
+					else {
+						$c .=  '&ndash;';
+					}
+					$c .=  '</td>';
+				}
+			$c .=  '</tr>';
+
+
+		}
+
+		$c .=  '</table>';
+		return $c;
+	}
+
+// V
+
 	function vis_tider( $innhold ) {
 		if ( get_option( 'bibliotider_side' ) && is_page( get_option( 'bibliotider_side' ) ) && !$this->vis_tider_kjort ) {
 			$this->vis_tider_kjort = true;
@@ -478,6 +572,10 @@ class Bibliotider {
 		}
 	}
 
+// W
+// X
+// Y
+// Z
 }
 
 // ----- Åpningstider-widgeten -----
@@ -506,7 +604,7 @@ class Bibliotider_Widget extends WP_Widget {
 		global $bibliotider;
 		echo '<section class="widget widget-bibliotider">';
 		echo '<h4 class="widgettitle">' . __( 'Åpningstider', 'bibliotider' ) . '</h4>';
-		$bibliotider->dagsvisning( date( 'Y-m-d' ) );
+		echo $bibliotider->dagsvisning( current_time( 'Y-m-d' ) );
 		echo '</section>';
 	}
 
