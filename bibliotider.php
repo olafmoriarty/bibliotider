@@ -15,7 +15,7 @@ Domain Path:  /sprak
 
 
 // Oppretter MySQL-tabeller
-$bibliotider = new bibliotider;
+$bibliotider = new Bibliotider;
 register_activation_hook( __FILE__, array( $bibliotider, 'mysql_install' ) );
 
 // Oppretter widget
@@ -40,7 +40,7 @@ add_filter( 'the_content', array( $bibliotider, 'vis_tider' ) );
 
 // ----- Hovedklassen -----
 
-class bibliotider {
+class Bibliotider {
 
 	// Wordpress-databasen (settes i tabnavn)
 	var $tabnavn;
