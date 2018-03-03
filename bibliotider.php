@@ -206,7 +206,7 @@ class bibliotider {
 		$c .=  '<tr>';
 		$c .=  '<th>' . __( 'Dag', 'bibliotider' ) . '</th>';
 		for ( $i = 0; $i < $antall_typer; $i++ ) {
-			$c .=  '<th>' . $betjent_typer[$i][0] . '</th>';
+			$c .=  '<th>' . $betjent_typer[ $i ][0] . '</th>';
 		}
 		$c .=  '</tr>';
 
@@ -223,10 +223,10 @@ class bibliotider {
 			$dagtider = $this->dag( $dag, $filial );
 				for ( $i = 0; $i < $antall_typer; $i++ ) {
 					$c .=  '<td>';
-					if ( isset( $dagtider[$i + 1] ) ) {
-						$c .=  substr( $dagtider[$i + 1]->starttid, 0, 5 );
+					if ( isset( $dagtider[ $i + 1 ] ) ) {
+						$c .=  substr( $dagtider[ $i + 1 ]->starttid, 0, 5 );
 						$c .=  '&ndash;';
-						$c .=  substr( $dagtider[$i + 1]->sluttid, 0, 5 );
+						$c .=  substr( $dagtider[ $i + 1 ]->sluttid, 0, 5 );
 					}
 					else {
 						$c .=  '&ndash;';
@@ -251,9 +251,9 @@ class bibliotider {
 		$klokka_er = current_time( 'H:i:s' );
 		foreach( $dagtider as $bt => $dagobjekt ) {
 			if ( !$tid_naa && $klokka_er >= $dagobjekt->starttid && $klokka_er < $dagobjekt->sluttid ) {
-				$tid_naa = $betjenttyper[$bt - 1][0];
+				$tid_naa = $betjenttyper[ $bt - 1 ][0];
 			}
-			$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[$bt - 1][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
+			$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[ $bt - 1 ][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
 
 		}
 		echo '<div class="vis_betjenttype';
@@ -262,7 +262,7 @@ class bibliotider {
 			$tid_naa = 'Stengt';
 		}
 		echo '">';
-		echo '<p class="vi_er_naa">' . sprintf( __( '%s er nå', 'bibliotider' ), $filialnavn[$filial] ) . '</p>';
+		echo '<p class="vi_er_naa">' . sprintf( __( '%s er nå', 'bibliotider' ), $filialnavn[ $filial ] ) . '</p>';
 
 		echo '<p class="betjenttype_naa">' . $tid_naa . '</p>' . "\n";
 		echo '</div>';
@@ -275,7 +275,7 @@ class bibliotider {
 		$dagtider = $this->dag( date( 'Y-m-d', strtotime( $dato . ' + 1 day' ) ), $filial );
 		$tidtabell = '';
 		foreach( $dagtider as $bt => $dagobjekt ) {
-			$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[$bt - 1][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
+			$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[ $bt - 1 ][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
 		}
 		if ( $tidtabell ) {
 			echo '<p><strong>' . __( 'Åpningstider i morgen:', 'bibliotider' ) . '</strong></p>';
@@ -324,14 +324,14 @@ class bibliotider {
 		for ( $f = 0; $f < $antall_filialer; $f++ ) {
 			// Sommertid/vintertid
 			for ( $p = 0; $p < $antall_perioder; $p++ ) {
-				$faktisk_p = $perioder[$p]['id'];
+				$faktisk_p = $perioder[ $p ]['id'];
 				// Ukedag
 				for ( $d = 1; $d <= 7; $d++ ) {
 					// Betjent/selvbetjent/meråpent
 					for ( $b = 0; $b < $antall_betjenttyper; $b++ ) {
 						$faktisk_b = $b + 1;
 						$res = $wpdb->get_row( $wpdb->prepare( 'SELECT TIME_FORMAT(starttid, \'%H:%i\') AS starttid, TIME_FORMAT(sluttid, \'%H:%i\') AS sluttid FROM ' . $this->tabnavn . ' WHERE filial = %d AND periode = %d AND ukedag = %d AND betjent = %d', $f, $faktisk_p, $d, $faktisk_b ), ARRAY_A );
-						$verdier[$f][$p][$d][$b] = $res;
+						$verdier[ $f ][ $p ][ $d ][ $b ] = $res;
 					}
 				}
 			}
@@ -351,7 +351,7 @@ class bibliotider {
 			for ( $f = 0; $f < $antall_filialer; $f++ ) {
 				// Sommertid/vintertid
 				for ( $p = 0; $p < $antall_perioder; $p++ ) {
-					$faktisk_p = $perioder[$p]['id'];
+					$faktisk_p = $perioder[ $p ]['id'];
 					// Ukedag
 					for ( $d = 1; $d <= 7; $d++ ) {
 						// Betjent/selvbetjent/meråpent
@@ -361,36 +361,36 @@ class bibliotider {
 							$eksisterer = false;
 							$skal_eksistere = false;
 							// Eksisterer verdien i basen fra før?
-							if ( isset( $verdier[$f][$p][$d][$b]['starttid'] ) ) {
+							if ( isset( $verdier[ $f ][ $p ][ $d ][ $b ]['starttid'] ) ) {
 								$eksisterer = true;
 							}
 
 							// Er det fylt inn en ny verdi i skjemaet? (Både start og slutt?)
-							if ( $_POST['f-' . $f . '-p-' . $p . '-d-' . $d . '-b-' . $b . '-start'] && $_POST['f-' . $f . '-p-' . $p . '-d-' . $d . '-b-' . $b . '-slutt'] ) {
+							if ( $_POST[ 'f-' . $f . '-p-' . $p . '-d-' . $d . '-b-' . $b . '-start' ] && $_POST[ 'f-' . $f . '-p-' . $p . '-d-' . $d . '-b-' . $b . '-slutt' ] ) {
 								$skal_eksistere = true;
-								$starttid = $_POST['f-' . $f . '-p-' . $p . '-d-' . $d . '-b-' . $b . '-start'];
-								$sluttid = $_POST['f-' . $f . '-p-' . $p . '-d-' . $d . '-b-' . $b . '-slutt'];
+								$starttid = $_POST[ 'f-' . $f . '-p-' . $p . '-d-' . $d . '-b-' . $b . '-start' ];
+								$sluttid = $_POST[ 'f-' . $f . '-p-' . $p . '-d-' . $d . '-b-' . $b . '-slutt' ];
 							}
 
 							// Dersom verdien ligger i basen, men ikke står i skjemaet, skal den slettes.
 							if ( $eksisterer && !$skal_eksistere ) {
 								$wpdb->delete( $this->tabnavn, array( 'filial' => $f, 'periode' => $faktisk_p, 'ukedag' => $d, 'betjent' => $faktisk_b ), array( '%d', '%d', '%d', '%d' ) );
-								$verdier[$f][$p][$d][$b]['starttid'] = '';
-								$verdier[$f][$p][$d][$b]['sluttid'] = '';
+								$verdier[ $f ][ $p ][ $d ][ $b ]['starttid'] = '';
+								$verdier[ $f ][ $p ][ $d ][ $b ]['sluttid'] = '';
 							}
 
 							// Dersom verdien ligger i basen og skjemaet, men ikke er identisk, skal den oppdateres.
-							if ( $eksisterer && $skal_eksistere && substr( $starttid, 0, 5 ) != substr( $verdier[$f][$p][$d][$b]['starttid'], 0, 5 ) ) {
+							if ( $eksisterer && $skal_eksistere && substr( $starttid, 0, 5 ) != substr( $verdier[ $f ][ $p ][ $d ][ $b ]['starttid'], 0, 5 ) ) {
 								$wpdb->update( $this->tabnavn, array( 'starttid' => $starttid, 'sluttid' => $sluttid ), array( 'filial' => $f, 'periode' => $faktisk_p, 'ukedag' => $d, 'betjent' => $faktisk_b ), array( '%s', '%s' ), array( '%d', '%d', '%d', '%d' ) );
-								$verdier[$f][$p][$d][$b]['starttid'] = $starttid;
-								$verdier[$f][$p][$d][$b]['sluttid'] = $sluttid;
+								$verdier[ $f ][ $p ][ $d ][ $b ]['starttid'] = $starttid;
+								$verdier[ $f ][ $p ][ $d ][ $b ]['sluttid'] = $sluttid;
 							}
 
 							// Dersom verdien ikke ligger i basen, men står i skjemaet, skal den legges inn.
 							if ( !$eksisterer && $skal_eksistere ) {
 								$wpdb->insert( $this->tabnavn, array( 'filial' => $f, 'periode' => $faktisk_p, 'ukedag' => $d, 'betjent' => $faktisk_b, 'starttid' => $starttid, 'sluttid' => $sluttid ), array( '%d', '%d', '%d', '%d', '%s', '%s' ) );
-								$verdier[$f][$p][$d][$b]['starttid'] = $starttid;
-								$verdier[$f][$p][$d][$b]['sluttid'] = $sluttid;
+								$verdier[ $f ][ $p ][ $d ][ $b ]['starttid'] = $starttid;
+								$verdier[ $f ][ $p ][ $d ][ $b ]['sluttid'] = $sluttid;
 							}
 						}
 					}
@@ -407,7 +407,7 @@ class bibliotider {
 			$filialer_ny = array();
 			$antall_filialer_ny = 0;
 			for ( $i = 0; $i < $antall; $i++ ) {
-				$nf = trim( $filialliste[$i] );
+				$nf = trim( $filialliste[ $i ] );
 				if ( $nf ) {
 					$filialer_ny[] = $nf;
 					$antall_filialer_ny++;
@@ -429,7 +429,7 @@ class bibliotider {
 			$betjenttyper_ny = array();
 			$antall_betjenttyper_ny = 0;
 			for ( $i = 0; $i < $antall; $i++ ) {
-				$nt = trim( $betjenttypeliste[$i] );
+				$nt = trim( $betjenttypeliste[ $i ] );
 				if ( $nt ) {
 					$nta = explode( ':', $nt, 2 );
 					$nta[0] = trim( $nta[0] );
