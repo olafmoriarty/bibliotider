@@ -86,6 +86,8 @@ class Bibliotider {
 
 	/**
 	 * Legger til CSS på innstillingssidene.
+	 *
+	 * @since 0.0.1
 	 */
 	function css_admin() {
 		wp_register_style( 'bibliotider-admin-css', plugins_url( 'admin.css', __FILE__ ) );
@@ -94,6 +96,8 @@ class Bibliotider {
 
 	/**
 	 * Legger til CSS på publikumssidene.
+	 *
+	 * @since 0.0.1
 	 */
 	function css_hoved() {
 		wp_register_style( 'bibliotider-css', plugins_url( 'bt.css', __FILE__ ) );
@@ -111,6 +115,7 @@ class Bibliotider {
 	 * @return array  Matrise av objekter der hvert objekt inneholder starttid
 	 *                og sluttid for en type åpningstid. Matrisenøkkelen
 	 *                tilsvarer betjenttype.
+	 * @since  0.0.1
 	 */
 	function dag( $dato, $filial = 0 ) {
 		global $wpdb;
@@ -149,6 +154,7 @@ class Bibliotider {
 	 *                         skal vises i tillegg til dagens, FALSE dersom de
 	 *                         ikke skal det. Standardverdi er TRUE.
 	 * @return string  HTML-kode som kan printes til skjerm.
+	 * @since  0.0.1
 	 */
 	function dagsvisning( $dato = '', $filial = 0, $morgen = true ) {
 		$c = '';
@@ -206,7 +212,13 @@ class Bibliotider {
 
 // E
 
-	// ----- Sjekk om oppgitt tekststreng er en gyldig dato i YYYY-MM-DD -----
+	/**
+	 * Sjekker om $dato er en gyldig dato.
+	 *
+	 * @param  string  $dato Datoen som skal sjekkes.
+	 * @return boolean TRUE dersom $dato er YYYY-MM-DD, FALSE om den ikke er det
+	 * @since  0.0.1
+	 */
 	function er_gyldig_dato( $dato ) {
 		$dt = DateTime::createFromFormat( "Y-m-d", $dato );
 		return $dt !== false && !array_sum( $dt->getLastErrors() );
@@ -217,8 +229,12 @@ class Bibliotider {
 // H
 // I
 
-	// ----- Innstillinger -----
-
+	/**
+	 * Viser Innstillinger-skjemaet som lar brukeren endre åpningstider m.m., og
+	 * behandler data fra det samme skjemaet.
+	 *
+	 * @since 0.0.1
+	 */
 	function innstillinger() {
 		global $wpdb;
 
@@ -384,8 +400,13 @@ class Bibliotider {
 // L
 // M
 
-	// ----- Legg administrasjonssiden for scriptet inn i menyen -----
-
+	/**
+	 * Legger til en side med innstillinger i administrasjonsmenyen.
+	 *
+	 * Metoden kalles av add_action( 'admin_menu' ).
+	 *
+	 * @since  0.0.1
+	 */
 	function meny() {
 		$sidetittel = __( 'Åpningstider', 'bibliotider' );
 		$menytittel = __( 'Åpningstider', 'bibliotider' );
