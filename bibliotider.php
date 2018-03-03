@@ -51,7 +51,7 @@ class bibliotider {
 	public function __construct() {
 		global $wpdb;
 		$this->wpdb = $wpdb;
-		$this->tabnavn = $wpdb->prefix.'bibliotider';
+		$this->tabnavn = $wpdb->prefix . 'bibliotider';
 	}
 
 	// Legg til CSS for innstillingssidene
@@ -94,7 +94,7 @@ class bibliotider {
 		dbDelta( $sql );
 
 		// Tabell over perioder (sommertid/vintertid)
-		$tabell = $this->tabnavn.'_perioder';
+		$tabell = $this->tabnavn . '_perioder';
 		$sql = "CREATE TABLE $tabell (
 		  id mediumint(9) NOT NULL AUTO_INCREMENT,
 		  navn varchar(100) NOT NULL,
@@ -108,10 +108,10 @@ class bibliotider {
 		update_option( 'bibliotider_tabellversjon', '0.1' );
 
 		// Legger til default informasjon om perioder dersom tabellen er tom
-		$num = $wpdb->get_var( 'SELECT COUNT(*) FROM '.$this->tabnavn.'_perioder' );
+		$num = $wpdb->get_var( 'SELECT COUNT(*) FROM ' . $this->tabnavn . '_perioder' );
 		if ( ! $num ) {
 			$wpdb->insert(
-				$this->tabnavn.'_perioder', 
+				$this->tabnavn . '_perioder', 
 				array( 
 					'navn'      => __( 'Vintertid', 'bibliotider' ), 
 					'startdato' => '2012-09-01', 
@@ -119,7 +119,7 @@ class bibliotider {
 				) 
 			);
 			$wpdb->insert(
-				$this->tabnavn.'_perioder', 
+				$this->tabnavn . '_perioder', 
 				array( 
 					'navn' => __( 'Sommertid', 'bibliotider' ), 
 					'startdato' => '2012-06-01', 
@@ -165,12 +165,12 @@ class bibliotider {
 		$aar = substr( $dato, 0, 4 );
 
 		// Finn unntak
-		$query = 'SELECT betjent, TIME_FORMAT(u_starttid, \'%H:%i\') AS starttid, TIME_FORMAT(u_sluttid, \'%H:%i\') AS sluttid, u_navn AS navn FROM '.$this->tabnavn.' WHERE filial = '.$filial.' AND \''.$dato.'\' BETWEEN u_startdato AND u_sluttdato ORDER BY betjent';
+		$query = 'SELECT betjent, TIME_FORMAT(u_starttid, \'%H:%i\') AS starttid, TIME_FORMAT(u_sluttid, \'%H:%i\') AS sluttid, u_navn AS navn FROM ' . $this->tabnavn . ' WHERE filial = ' . $filial . ' AND \'' . $dato . '\' BETWEEN u_startdato AND u_sluttdato ORDER BY betjent';
 
 		$result = $wpdb->get_results( $query, OBJECT_K );
 
 		if (0 == $result->num_rows) {
-			$query = 'SELECT t.betjent, TIME_FORMAT(t.starttid, \'%H:%i\') AS starttid, TIME_FORMAT(t.sluttid, \'%H:%i\') AS sluttid, p.navn FROM '.$this->tabnavn.' AS t LEFT JOIN '.$this->tabnavn.'_perioder AS p ON t.periode = p.id WHERE t.filial = '.$filial.' AND ((p.startdato <= p.sluttdato AND \''.$dato.'\' BETWEEN DATE_FORMAT(p.startdato, \''.$aar.'-%m-%d\') AND DATE_FORMAT(p.sluttdato, \''.$aar.'-%m-%d\')) OR (p.startdato > p.sluttdato AND (\''.$dato.'\' >= DATE_FORMAT(p.startdato, \''.$aar.'-%m-%d\') OR \''.$dato.'\' <= DATE_FORMAT(p.sluttdato, \''.$aar.'-%m-%d\')))) AND t.ukedag = WEEKDAY(\''.$dato.'\') + 1';
+			$query = 'SELECT t.betjent, TIME_FORMAT(t.starttid, \'%H:%i\') AS starttid, TIME_FORMAT(t.sluttid, \'%H:%i\') AS sluttid, p.navn FROM ' . $this->tabnavn . ' AS t LEFT JOIN ' . $this->tabnavn . '_perioder AS p ON t.periode = p.id WHERE t.filial = ' . $filial . ' AND ((p.startdato <= p.sluttdato AND \'' . $dato . '\' BETWEEN DATE_FORMAT(p.startdato, \'' . $aar . '-%m-%d\') AND DATE_FORMAT(p.sluttdato, \'' . $aar . '-%m-%d\')) OR (p.startdato > p.sluttdato AND (\'' . $dato . '\' >= DATE_FORMAT(p.startdato, \'' . $aar . '-%m-%d\') OR \'' . $dato . '\' <= DATE_FORMAT(p.sluttdato, \'' . $aar . '-%m-%d\')))) AND t.ukedag = WEEKDAY(\'' . $dato . '\') + 1';
 
 			$result = $wpdb->get_results( $query, OBJECT_K );
 		}
@@ -204,9 +204,9 @@ class bibliotider {
 
 		// Headerrad
 		$c .=  '<tr>';
-		$c .=  '<th>'.__( 'Dag', 'bibliotider' ).'</th>';
+		$c .=  '<th>' . __( 'Dag', 'bibliotider' ) . '</th>';
 		for ( $i = 0; $i < $antall_typer; $i++ ) {
-			$c .=  '<th>'.$betjent_typer[$i][0].'</th>';
+			$c .=  '<th>' . $betjent_typer[$i][0] . '</th>';
 		}
 		$c .=  '</tr>';
 
@@ -253,7 +253,7 @@ class bibliotider {
 			if ( !$tid_naa && $klokka_er >= $dagobjekt->starttid && $klokka_er < $dagobjekt->sluttid ) {
 				$tid_naa = $betjenttyper[$bt - 1][0];
 			}
-			$tidtabell .= '<tr><td class="betjenttype">'.$betjenttyper[$bt - 1][0].'</td><td>'.$dagobjekt->starttid.'&ndash;'.$dagobjekt->sluttid.'</td></tr>';
+			$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[$bt - 1][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
 
 		}
 		echo '<div class="vis_betjenttype';
@@ -262,29 +262,29 @@ class bibliotider {
 			$tid_naa = 'Stengt';
 		}
 		echo '">';
-		echo '<p class="vi_er_naa">'.sprintf( __( '%s er nå', 'bibliotider' ), $filialnavn[$filial] ).'</p>';
+		echo '<p class="vi_er_naa">' . sprintf( __( '%s er nå', 'bibliotider' ), $filialnavn[$filial] ) . '</p>';
 
-		echo '<p class="betjenttype_naa">'.$tid_naa.'</p>'."\n";
+		echo '<p class="betjenttype_naa">' . $tid_naa . '</p>' . "\n";
 		echo '</div>';
 		if ( $tidtabell ) {
-			echo '<p><strong>'.__( 'Åpningstider i dag:', 'bibliotider' ).'</strong></p>';
-			echo '<table class="bibliotider_tabell">'.$tidtabell.'</table>';
+			echo '<p><strong>' . __( 'Åpningstider i dag:', 'bibliotider' ) . '</strong></p>';
+			echo '<table class="bibliotider_tabell">' . $tidtabell . '</table>';
 		}
 
 		// Neste dag
-		$dagtider = $this->dag( date( 'Y-m-d', strtotime( $dato.' + 1 day' ) ), $filial );
+		$dagtider = $this->dag( date( 'Y-m-d', strtotime( $dato . ' + 1 day' ) ), $filial );
 		$tidtabell = '';
 		foreach( $dagtider as $bt => $dagobjekt ) {
-			$tidtabell .= '<tr><td class="betjenttype">'.$betjenttyper[$bt - 1][0].'</td><td>'.$dagobjekt->starttid.'&ndash;'.$dagobjekt->sluttid.'</td></tr>';
+			$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[$bt - 1][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
 		}
 		if ( $tidtabell ) {
-			echo '<p><strong>'.__( 'Åpningstider i morgen:', 'bibliotider' ).'</strong></p>';
-			echo '<table class="bibliotider_tabell">'.$tidtabell.'</table>';
+			echo '<p><strong>' . __( 'Åpningstider i morgen:', 'bibliotider' ) . '</strong></p>';
+			echo '<table class="bibliotider_tabell">' . $tidtabell . '</table>';
 		}
 
 		$slug = get_option( 'bibliotider_side' );
 		if ( $slug ) {
-			echo '<p><a href="'.get_page_link( get_page_by_path( $slug ) ).'">'.__( 'Alle åpningstider ...' , 'bibliotider' ).'</a></p>';
+			echo '<p><a href="' . get_page_link( get_page_by_path( $slug ) ) . '">' . __( 'Alle åpningstider ...' , 'bibliotider' ) . '</a></p>';
 		}
 
 	}
@@ -317,7 +317,7 @@ class bibliotider {
 		$antall_betjenttyper = count( $betjenttyper );
 
 		// Henter informasjon om perioder i året (sommertid, vintertid ...)
-		$perioder = $wpdb->get_results( 'SELECT id, navn, startdato, sluttdato FROM '.$this->tabnavn.'_perioder ORDER BY id', ARRAY_A );
+		$perioder = $wpdb->get_results( 'SELECT id, navn, startdato, sluttdato FROM ' . $this->tabnavn . '_perioder ORDER BY id', ARRAY_A );
 		$antall_perioder = count( $perioder );
 
 		// Henter tidligere verdier fra basen
@@ -330,7 +330,7 @@ class bibliotider {
 					// Betjent/selvbetjent/meråpent
 					for ( $b = 0; $b < $antall_betjenttyper; $b++ ) {
 						$faktisk_b = $b + 1;
-						$res = $wpdb->get_row( $wpdb->prepare( 'SELECT TIME_FORMAT(starttid, \'%H:%i\') AS starttid, TIME_FORMAT(sluttid, \'%H:%i\') AS sluttid FROM '.$this->tabnavn.' WHERE filial = %d AND periode = %d AND ukedag = %d AND betjent = %d', $f, $faktisk_p, $d, $faktisk_b ), ARRAY_A );
+						$res = $wpdb->get_row( $wpdb->prepare( 'SELECT TIME_FORMAT(starttid, \'%H:%i\') AS starttid, TIME_FORMAT(sluttid, \'%H:%i\') AS sluttid FROM ' . $this->tabnavn . ' WHERE filial = %d AND periode = %d AND ukedag = %d AND betjent = %d', $f, $faktisk_p, $d, $faktisk_b ), ARRAY_A );
 						$verdier[$f][$p][$d][$b] = $res;
 					}
 				}
@@ -366,10 +366,10 @@ class bibliotider {
 							}
 
 							// Er det fylt inn en ny verdi i skjemaet? (Både start og slutt?)
-							if ( $_POST['f-'.$f.'-p-'.$p.'-d-'.$d.'-b-'.$b.'-start'] && $_POST['f-'.$f.'-p-'.$p.'-d-'.$d.'-b-'.$b.'-slutt'] ) {
+							if ( $_POST['f-' . $f . '-p-' . $p . '-d-' . $d . '-b-' . $b . '-start'] && $_POST['f-' . $f . '-p-' . $p . '-d-' . $d . '-b-' . $b . '-slutt'] ) {
 								$skal_eksistere = true;
-								$starttid = $_POST['f-'.$f.'-p-'.$p.'-d-'.$d.'-b-'.$b.'-start'];
-								$sluttid = $_POST['f-'.$f.'-p-'.$p.'-d-'.$d.'-b-'.$b.'-slutt'];
+								$starttid = $_POST['f-' . $f . '-p-' . $p . '-d-' . $d . '-b-' . $b . '-start'];
+								$sluttid = $_POST['f-' . $f . '-p-' . $p . '-d-' . $d . '-b-' . $b . '-slutt'];
 							}
 
 							// Dersom verdien ligger i basen, men ikke står i skjemaet, skal den slettes.
@@ -456,7 +456,7 @@ class bibliotider {
 		// ----- INKLUDER SKJEMAET -----
 
 		echo '<div class="wrap">';
-		echo '<h1>'.__( 'Endre åpningstider', 'bibliotider' ).'</h1>';
+		echo '<h1>' . __( 'Endre åpningstider', 'bibliotider' ) . '</h1>';
 
 		include( 'skjema.php' );
 
@@ -467,9 +467,9 @@ class bibliotider {
 		if ( get_option( 'bibliotider_side' ) && is_page( get_option( 'bibliotider_side' ) ) && !$this->vis_tider_kjort ) {
 			$this->vis_tider_kjort = true;
 			$c = '';
-			$c .=  '<h2>'.__( 'Åpningstider denne uka:', 'bibliotider' ).'</h2>';
+			$c .=  '<h2>' . __( 'Åpningstider denne uka:', 'bibliotider' ) . '</h2>';
 			$c .= $this->uke( date( 'Y-m-d' ) );
-			$c .=  '<h2>'.__( 'Avvik den nærmeste måneden:', 'bibliotider' ).'</h2>';
+			$c .=  '<h2>' . __( 'Avvik den nærmeste måneden:', 'bibliotider' ) . '</h2>';
 			$c .=  '<p>Ingen avvik registrert</p>';
 			return $c;
 		}
@@ -505,7 +505,7 @@ class Bibliotider_Widget extends WP_Widget {
 		// outputs the content of the widget
 		global $bibliotider;
 		echo '<section class="widget widget-bibliotider">';
-		echo '<h4 class="widgettitle">'.__( 'Åpningstider', 'bibliotider' ).'</h4>';
+		echo '<h4 class="widgettitle">' . __( 'Åpningstider', 'bibliotider' ) . '</h4>';
 		$bibliotider->dagsvisning( date( 'Y-m-d' ) );
 		echo '</section>';
 	}
