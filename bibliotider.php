@@ -7,8 +7,8 @@ Description:  Registrering og visning av åpningstider, tilpasset bibliotek. Ski
 Version:      0.0.1
 Author:       Ski bibliotek
 Author URI:   http://skibibliotek.no
-License:      
-License URI:  
+License:      GNU General Public License v3.0
+License URI:  https://www.gnu.org/licenses/gpl-3.0.en.html
 Text Domain:  bibliotider
 Domain Path:  /sprak
 */
@@ -623,9 +623,22 @@ class Bibliotider_Widget extends WP_Widget {
 	public function widget( $args, $instance ) {
 		// outputs the content of the widget
 		global $bibliotider;
+		
+		if ( isset($instance['filial']) && $instance['filial'] ) {
+			$filial = $instance['filial'];
+		}
+		else {
+			$filial = 0;
+		}
 		echo '<section class="widget widget-bibliotider">';
 		echo '<h4 class="widgettitle">' . __( 'Åpningstider', 'bibliotider' ) . '</h4>';
-		echo $bibliotider->dagsvisning( current_time( 'Y-m-d' ) );
+		if ( $instance['visning'] == 'uke' ) {
+			echo $bibliotider->uke( current_time( 'Y-m-d' ), $filial );
+		}
+		else {
+			echo $bibliotider->dagsvisning( current_time( 'Y-m-d' ), $filial );
+			
+		}
 		echo '</section>';
 	}
 
@@ -636,6 +649,53 @@ class Bibliotider_Widget extends WP_Widget {
 	 */
 	public function form( $instance ) {
 		// outputs the options form on admin
+		
+		// Hvilke visninger er tilgjengelige?
+		$visninger = array( 'dag', 'uke' );
+		// Hvilken visning er valgt?
+		if ( isset( $instance['visning'] ) && in_array( $instance['visning'], $visninger ) ) {
+			$visning = $instance['visning'];
+		}
+		else {
+			// Standardvisning: Dagsvisning
+			$visning = 'dag';
+		}
+		// Velg visning
+		echo '<p><input type="radio" name="'.$this->get_field_name( 'visning' ).'" value="dag"';
+		if ('dag' == $visning) {
+			echo ' checked="checked"';
+		}
+		echo ' /> '.__( 'Dagsvisning', 'bibliotider' ).'<br />';
+		echo '<input type="radio" name="'.$this->get_field_name( 'visning' ).'" value="uke"';
+		if ('uke' == $visning) {
+			echo ' checked="checked"';
+		}
+		echo ' /> '.__( 'Ukesvisning', 'bibliotider' ).'</p>';
+		
+		// Hvilken filial er valgt?
+		if ( isset( $instance['filial'] ) && (int)$instance['filial'] >= 0 && (int)$instance['filial'] < $antall_filialer ) {
+			$valgt_filial = instance['filial'];
+		}
+		else {
+			// Standardfilial: Hovedbiblioteket
+			$valgt_filial = 0;
+		}
+		
+		
+		// Hent filialoversikten
+		$filialer = get_option( 'bibliotider_filialer' );
+		$filialtall = count( $filialer );
+		
+		// Velg filial
+		echo '<p>' . __( 'Filial:', 'bibliotider' ) . '<br /><select name="'.$this->get_field_name( 'filial' ).'">';
+		for ( $i = 0; $i < $filialtall; $i++ ) {
+			echo '<option value="'.$i.'"';
+			if ( $valgt_filial == $i ) {
+				echo ' selected="selected"';
+			}
+			echo '>' . $filialer[ $i ] . '</option>';
+		}
+		echo '</select></p>';	
 	}
 
 	/**
@@ -648,5 +708,9 @@ class Bibliotider_Widget extends WP_Widget {
 	 */
 	public function update( $new_instance, $old_instance ) {
 		// processes widget options to be saved
+		
+		// ** LEGG TIL VALIDERING HER **
+		
+		return $new_instance;
 	}
 }
