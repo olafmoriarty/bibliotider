@@ -179,7 +179,7 @@ class Bibliotider {
 			$c .= '<div class="vis_betjenttype';
 			if ( ! $tid_naa ) {
 				$c .= ' betjenttype_stengt';
-				$tid_naa = 'Stengt';
+				$tid_naa = __( 'Stengt', 'bibliotider' );
 			}
 			$c .= '">';
 			$c .= '<p class="vi_er_naa">' . sprintf( __( '%s er nå', 'bibliotider' ), $filialnavn[ $filial ] ) . '</p>';
@@ -187,10 +187,13 @@ class Bibliotider {
 			$c .= '<p class="betjenttype_naa">' . $tid_naa . '</p>' . "\n";
 			$c .= '</div>';
 		}
-		if ( $tidtabell ) {
-			$c .= '<p><strong>' . __( 'Åpningstider i dag:', 'bibliotider' ) . '</strong></p>';
-			$c .= '<table class="bibliotider_tabell">' . $tidtabell . '</table>';
+
+		if ( ! $tidtabell ) {
+			$tidtabell = '<tr><td class="betjenttype">' . __( 'Stengt', 'bibliotider' ) . '</td><td>' . __( 'Hele dagen', 'bibliotider' ) . '</td></tr>';
 		}
+
+		$c .= '<p><strong>' . __( 'Åpningstider i dag:', 'bibliotider' ) . '</strong></p>';
+		$c .= '<table class="bibliotider_tabell">' . $tidtabell . '</table>';
 
 		// Neste dag
 		$dagtider = $this->dag( date( 'Y-m-d', strtotime( $dato . ' + 1 day' ) ), $filial );
@@ -198,10 +201,13 @@ class Bibliotider {
 		foreach( $dagtider as $bt => $dagobjekt ) {
 			$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[ $bt - 1 ][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
 		}
-		if ( $tidtabell ) {
-			$c .= '<p><strong>' . __( 'Åpningstider i morgen:', 'bibliotider' ) . '</strong></p>';
-			$c .= '<table class="bibliotider_tabell">' . $tidtabell . '</table>';
+
+		if ( ! $tidtabell ) {
+			$tidtabell = '<tr><td class="betjenttype">' . __( 'Stengt', 'bibliotider' ) . '</td><td>' . __( 'Hele dagen', 'bibliotider' ) . '</td></tr>';
 		}
+
+		$c .= '<p><strong>' . __( 'Åpningstider i morgen:', 'bibliotider' ) . '</strong></p>';
+		$c .= '<table class="bibliotider_tabell">' . $tidtabell . '</table>';
 
 		$slug = get_option( 'bibliotider_side' );
 		if ( $slug ) {
