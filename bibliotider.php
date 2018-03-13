@@ -124,11 +124,11 @@ class Bibliotider {
 		$aar = substr( $dato, 0, 4 );
 
 		// Finn unntak
-		$query = 'SELECT betjent, TIME_FORMAT(u_starttid, \'%H:%i\') AS starttid, TIME_FORMAT(u_sluttid, \'%H:%i\') AS sluttid, u_navn AS navn FROM ' . $this->tabnavn . ' WHERE filial = ' . $filial . ' AND \'' . $dato . '\' BETWEEN u_startdato AND u_sluttdato ORDER BY betjent';
+		$query = 'SELECT betjent, TIME_FORMAT(starttid, \'%H:%i\') AS starttid, TIME_FORMAT(sluttid, \'%H:%i\') AS sluttid, u_navn AS navn FROM ' . $this->tabnavn . ' WHERE filial = ' . $filial . ' AND \'' . $dato . '\' BETWEEN u_startdato AND u_sluttdato ORDER BY betjent';
 
 		$result = $wpdb->get_results( $query, OBJECT_K );
-
-		if (0 == $result->num_rows) {
+		
+		if (0 == $wpdb->num_rows) {
 			$query = 'SELECT t.betjent, TIME_FORMAT(t.starttid, \'%H:%i\') AS starttid, TIME_FORMAT(t.sluttid, \'%H:%i\') AS sluttid, p.navn FROM ' . $this->tabnavn . ' AS t LEFT JOIN ' . $this->tabnavn . '_perioder AS p ON t.periode = p.id WHERE t.filial = ' . $filial . ' AND ((p.startdato <= p.sluttdato AND \'' . $dato . '\' BETWEEN DATE_FORMAT(p.startdato, \'' . $aar . '-%m-%d\') AND DATE_FORMAT(p.sluttdato, \'' . $aar . '-%m-%d\')) OR (p.startdato > p.sluttdato AND (\'' . $dato . '\' >= DATE_FORMAT(p.startdato, \'' . $aar . '-%m-%d\') OR \'' . $dato . '\' <= DATE_FORMAT(p.sluttdato, \'' . $aar . '-%m-%d\')))) AND t.ukedag = WEEKDAY(\'' . $dato . '\') + 1';
 			$result = $wpdb->get_results( $query, OBJECT_K );
 		}
