@@ -7,8 +7,8 @@ Description:  Registrering og visning av åpningstider, tilpasset bibliotek. Ski
 Version:      0.0.1
 Author:       Ski bibliotek
 Author URI:   http://skibibliotek.no
-License:      GNU General Public License v3.0
-License URI:  https://www.gnu.org/licenses/gpl-3.0.en.html
+License:      GNU General Public License v2.0
+License URI:  https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 Text Domain:  bibliotider
 Domain Path:  /sprak
 */
