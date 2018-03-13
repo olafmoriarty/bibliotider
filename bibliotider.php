@@ -168,10 +168,12 @@ class Bibliotider {
 		$tidtabell = '';
 		$klokka_er = current_time( 'H:i:s' );
 		foreach( $dagtider as $bt => $dagobjekt ) {
-			if ( !$tid_naa && $klokka_er >= $dagobjekt->starttid && $klokka_er < $dagobjekt->sluttid ) {
-				$tid_naa = $betjenttyper[ $bt - 1 ][0];
+			if ( $bt > 0 ) {
+				if ( !$tid_naa && $klokka_er >= $dagobjekt->starttid && $klokka_er < $dagobjekt->sluttid ) {
+					$tid_naa = $betjenttyper[ $bt - 1 ][0];
+				}
+				$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[ $bt - 1 ][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
 			}
-			$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[ $bt - 1 ][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
 
 		}
 
@@ -333,6 +335,47 @@ class Bibliotider {
 						}
 					}
 				}
+			}
+		}
+
+		// ----- Når brukeren har lagt til et unntak -----
+
+		elseif ( isset( $_POST['fane_sendt_inn'] ) && $_POST['fane_sendt_inn'] == 'unntak' ) {
+			if ($_POST['startdato']) {
+
+				if ( $_POST['filial'] ) {
+					$filial = $_POST['filial'];
+				}
+				else {
+					$filial = 0;
+				}
+
+				$startdato = $_POST['startdato'];
+				if ($_POST['sluttdato']) {
+					$sluttdato = $_POST['sluttdato'];
+				}
+				else {
+					$sluttdato = $startdato;
+				}
+				
+				// Er noen av feltene fylt ut?
+				$felt_fylt_ut = false;
+				for ( $b = 0; $b < $antall_betjenttyper; $b++ ) {
+					$faktisk_b = $b + 1;
+					if ( $_POST[ $b . '-start' ] && $_POST[ $b . '-slutt' ] ) {
+						$felt_fylt_ut = true;
+						$starttid = $_POST[ $b . '-start' ];
+						$sluttid  = $_POST[ $b . '-slutt' ];
+
+						$wpdb->insert( $this->tabnavn, array( 'filial' => $filial, 'betjent' => $faktisk_b, 'starttid' => $starttid, 'sluttid' => $sluttid, 'u_startdato' =>  $startdato, 'u_sluttdato' => $sluttdato ), array( '%d', '%d', '%s', '%s', '%s', '%s' ) );
+					}
+				}
+
+				if ( ! $felt_fylt_ut ) {
+					$wpdb->insert( $this->tabnavn, array( 'filial' => $filial, 'betjent' => 0, 'u_startdato' =>  $startdato, 'u_sluttdato' => $sluttdato ), array( '%d', '%d', '%s', '%s' ) );
+					
+				}
+				
 			}
 		}
 
