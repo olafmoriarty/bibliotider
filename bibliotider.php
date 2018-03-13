@@ -2,7 +2,7 @@
 
 /*
 Plugin Name:  Bibliotekets åpningstider
-Plugin URI:   https://github.com/olafmoriarty/bibliotider/
+Plugin URI:   https://github.com/skibibliotek/bibliotider/
 Description:  Registrering og visning av åpningstider, tilpasset bibliotek. Skiller mellom betjent, selvbetjent og meråpent.
 Version:      0.0.1
 Author:       Ski bibliotek
