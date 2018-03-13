@@ -12,8 +12,5 @@ Standardinnstilling er én filial med navn "Hovedbiblioteket", to perioder ("Vin
 
 For å vise inneværende ukes åpningstider (eller ukas åpningstider for en oppgitt dato):
 
-* Legg til widgeten "Bibliotekets åpningstider" på ønsket sted
+* Legg til widgeten "Bibliotekets åpningstider" i ønsket widgetområde
 * (Shortcode kommer!)
-
-## Reservering av rom o.l.
-(Kommer)
