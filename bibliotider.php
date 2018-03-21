@@ -680,7 +680,9 @@ class Bibliotider_Widget extends WP_Widget {
 			$filial = 0;
 		}
 		echo '<section class="widget widget-bibliotider">';
-		echo '<h4 class="widgettitle">' . __( 'Åpningstider', 'bibliotider' ) . '</h4>';
+		if ( isset($instance['tittel']) && $instance['tittel'] ) {
+			echo '<h4 class="widgettitle">' . $instance['tittel'] . '</h4>';
+		}
 		if ( $instance['visning'] == 'uke' ) {
 			echo $bibliotider->uke( current_time( 'Y-m-d' ), $filial );
 		}
