@@ -628,6 +628,39 @@ class Bibliotider {
 // V
 
 	function vis_tider( $innhold ) {
+		global $wpdb;
+		
+		$verdier = array();
+
+		// Henter informasjon om filialer
+		$filialer = get_option( 'bibliotider_filialer' );
+		$antall_filialer = count( $filialer );
+
+		// Henter informasjon om typer åpningstid (betjent, meråpent ...)
+		$betjenttyper = get_option( 'bibliotider_betjent' );
+		$antall_betjenttyper = count( $betjenttyper );
+
+		// Henter informasjon om perioder i året (sommertid, vintertid ...)
+		$perioder = $wpdb->get_results( 'SELECT id, navn, startdato, sluttdato FROM ' . $this->tabnavn . '_perioder ORDER BY id', ARRAY_A );
+		$antall_perioder = count( $perioder );
+
+		// Henter tidligere verdier fra basen
+		for ( $f = 0; $f < $antall_filialer; $f++ ) {
+			// Sommertid/vintertid
+			for ( $p = 0; $p < $antall_perioder; $p++ ) {
+				$faktisk_p = $perioder[ $p ]['id'];
+				// Ukedag
+				for ( $d = 1; $d <= 7; $d++ ) {
+					// Betjent/selvbetjent/meråpent
+					for ( $b = 0; $b < $antall_betjenttyper; $b++ ) {
+						$faktisk_b = $b + 1;
+						$res = $wpdb->get_row( $wpdb->prepare( 'SELECT TIME_FORMAT(starttid, \'%H:%i\') AS starttid, TIME_FORMAT(sluttid, \'%H:%i\') AS sluttid FROM ' . $this->tabnavn . ' WHERE filial = %d AND periode = %d AND ukedag = %d AND betjent = %d', $f, $faktisk_p, $d, $faktisk_b ), ARRAY_A );
+						$verdier[ $f ][ $p ][ $d ][ $b ] = $res;
+					}
+				}
+			}
+		}		
+		
 		if ( get_option( 'bibliotider_side' ) && is_page( get_option( 'bibliotider_side' ) ) && !$this->vis_tider_kjort ) {
 			$this->vis_tider_kjort = true;
 			$c = '';
@@ -635,6 +668,48 @@ class Bibliotider {
 			$c .= $this->uke( date( 'Y-m-d' ) );
 			$c .=  '<h2>' . __( 'Avvik den nærmeste måneden:', 'bibliotider' ) . '</h2>';
 			$c .=  '<p>Ingen avvik registrert</p>';
+
+			$eksplodert_tid = explode('-', date('Y-m-d'));
+			$gitt_ukedag = date('N');
+
+			$i = 0;
+
+			for ($j = 0; $j < $antall_perioder; $j++) {
+					$faktisk_p = $perioder[$j]['id'];
+			
+				$c .= '<h2>'.sprintf(__('%1$s (fra %2$s til %3$s):', 'bibliotider'), $perioder[$j]['navn'], date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$j]['startdato'])), date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$j]['sluttdato']))).'</h3>';
+
+				$c .= '<table class="apningstider">';
+
+				// Headerrad
+				$c .= '<tr>';
+				$c .= '<th>'.__('Dag', 'bibliotider').'</th>';
+				for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
+					$c .= '<th>'.$betjenttyper[$h][0].'</th>';
+				}
+				$c .= '</tr>';
+
+				for ( $d = 1; $d <= 7; $d++) {
+					$dagtid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2] - $gitt_ukedag + $d, $eksplodert_tid[0] );
+					$dag = date( 'Y-m-d', $dagtid );
+
+					$c .= '<tr>';
+					$c .= '<td>';
+					$c .= date_i18n( __('l', 'bibliotider'), $dagtid );
+					$c .= '</td>';
+
+					// Hent info om denne dagens åpningstider
+					for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
+						$c .= '<td>';
+						$c .= $verdier[$i][$j][$d][$h]['starttid'];
+						$c .= '&ndash;';
+						$c .= $verdier[$i][$j][$d][$h]['sluttid'];
+						$c .= '</td>';
+					}
+					$c .= '</tr>';
+				}
+				$c .= '</table>';
+			}
 			return $c;
 		}
 		else {
