@@ -667,7 +667,55 @@ class Bibliotider {
 			$c .=  '<h2>' . __( 'Åpningstider denne uka:', 'bibliotider' ) . '</h2>';
 			$c .= $this->uke( date( 'Y-m-d' ) );
 			$c .=  '<h2>' . __( 'Avvik den nærmeste måneden:', 'bibliotider' ) . '</h2>';
-			$c .=  '<p>Ingen avvik registrert</p>';
+			$query = 'SELECT u_startdato, u_sluttdato FROM ' . $this->tabnavn . ' WHERE u_startdato BETWEEN CAST(\'' . date( 'Y-m-d' ) . '\' AS DATE) AND CAST(\'' . date( 'Y-m-d', strtotime( '+1 month' ) ) . '\' AS DATE)';
+			$result = $wpdb->get_results( $query, OBJECT_K );
+			$num = $wpdb->num_rows;
+			if (0 == $num) {
+				$c .=  '<p>Ingen avvik registrert</p>';
+			}
+			else {
+				ksort( $result );
+				$c .= '<table>';
+
+				// Headerrad
+				$c .=  '<tr>';
+				$c .=  '<th>' . __( 'Dag', 'bibliotider' ) . '</th>';
+				for ( $i = 0; $i < $antall_betjenttyper; $i++ ) {
+					$c .=  '<th>' . $betjenttyper[ $i ][0] . '</th>';
+				}
+				$c .=  '</tr>';
+
+				foreach ($result AS $dato => $obj) {
+							$eksplodert_tid = explode( '-', $dato );
+							//	$datotid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2], $eksplodert_tid[0] );
+
+					$dagtid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2], $eksplodert_tid[0] );
+
+					$c .=  '<tr>';
+					$c .=  '<td>';
+					$c .=  date_i18n( __( 'l d.m.', 'bibliotider' ), $dagtid );
+					$c .=  '</td>';
+
+					// Hent info om denne dagens åpningstider
+					$dagtider = $this->dag( $obj->u_startdato );
+						for ( $i = 0; $i < $antall_betjenttyper; $i++ ) {
+							$c .=  '<td>';
+							if ( isset( $dagtider[ $i + 1 ] ) ) {
+								$c .=  substr( $dagtider[ $i + 1 ]->starttid, 0, 5 );
+								$c .=  '&ndash;';
+								$c .=  substr( $dagtider[ $i + 1 ]->sluttid, 0, 5 );
+							}
+							else {
+								$c .=  '&ndash;';
+							}
+							$c .=  '</td>';
+						}
+					$c .=  '</tr>';
+
+					
+				}
+				$c .=  '</table>';
+			}
 
 			$eksplodert_tid = explode('-', date('Y-m-d'));
 			$gitt_ukedag = date('N');
