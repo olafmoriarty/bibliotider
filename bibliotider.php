@@ -33,7 +33,7 @@ add_action( 'admin_enqueue_scripts', array( $bibliotider, 'css_admin' ) );
 // Legger til Ajax
 add_action('wp_ajax_bibliotider_refresh_widget', array($bibliotider, 'refresh_widget'));
 add_action('wp_ajax_nopriv_bibliotider_refresh_widget', array($bibliotider, 'refresh_widget'));
-add_action('wp_print_footer_scripts', , array($bibliotider, 'ajax_init'));
+add_action('wp_print_footer_scripts', array($bibliotider, 'ajax_init'));
 
 // Oppretter side for åpningstider
 add_filter( 'the_content', array( $bibliotider, 'vis_tider' ) );
@@ -92,12 +92,12 @@ class Bibliotider {
 		jQuery(document).ready(function($) {
 
 			var data = {
-				'action': 'refresh_widget',
+				'action': 'bibliotider_refresh_widget',
 				'tid': '<?php echo date('Y-m-d H:i'); ?>'
 			};
 
 			// since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
-			jQuery.post(ajaxurl, data, function(response) { $(".bibliotider_widget_content").html(response) });
+			jQuery.post('<?php echo admin_url( 'admin-ajax.php' ) ?>', data, function(response) { jQuery(".bibliotider_widget_content").html(response) });
 		});
 		</script> <?php
 	}
@@ -586,7 +586,8 @@ class Bibliotider {
 // R
 
 	function refresh_widget() {
-		return $this->dagsvisning( current_time( 'Y-m-d' ) );
+		echo $this->dagsvisning( current_time( 'Y-m-d' ) );
+		wp_die();
 	}
 // S
 // T
