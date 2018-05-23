@@ -30,6 +30,11 @@ add_action( 'admin_menu', array( $bibliotider, 'meny' ) );
 add_action( 'wp_enqueue_scripts', array( $bibliotider, 'css_hoved' ) );
 add_action( 'admin_enqueue_scripts', array( $bibliotider, 'css_admin' ) );
 
+// Legger til Ajax
+add_action('wp_ajax_bibliotider_refresh_widget', array($bibliotider, 'refresh_widget'));
+add_action('wp_ajax_nopriv_bibliotider_refresh_widget', array($bibliotider, 'refresh_widget'));
+add_action('wp_print_footer_scripts', , array($bibliotider, 'ajax_init'));
+
 // Oppretter side for åpningstider
 add_filter( 'the_content', array( $bibliotider, 'vis_tider' ) );
 
@@ -81,6 +86,23 @@ class Bibliotider {
 	}
 
 // A
+	function ajax_init() {
+		 ?>
+		<script type="text/javascript" >
+		jQuery(document).ready(function($) {
+
+			var data = {
+				'action': 'refresh_widget',
+				'tid': '<?php echo date('Y-m-d H:i'); ?>'
+			};
+
+			// since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
+			jQuery.post(ajaxurl, data, function(response) { $(".bibliotider_widget_content").html(response) });
+		});
+		</script> <?php
+	}
+		
+
 // B
 // C
 
@@ -515,7 +537,7 @@ class Bibliotider {
 				array( 
 					'navn'      => __( 'Vintertid', 'bibliotider' ), 
 					'startdato' => '2012-09-01', 
-					'sluttdato' => '2012-06-30' 
+					'sluttdato' => '2012-05-31' 
 				) 
 			);
 			$wpdb->insert(
@@ -562,6 +584,10 @@ class Bibliotider {
 // P
 // Q
 // R
+
+	function refresh_widget() {
+		return $this->dagsvisning( current_time( 'Y-m-d' ) );
+	}
 // S
 // T
 // U
@@ -810,8 +836,10 @@ class Bibliotider_Widget extends WP_Widget {
 			echo $bibliotider->uke( current_time( 'Y-m-d' ), $filial );
 		}
 		else {
-			echo $bibliotider->dagsvisning( current_time( 'Y-m-d' ), $filial );
-			
+//			echo $bibliotider->dagsvisning( current_time( 'Y-m-d' ), $filial );
+			echo '<div class="bibliotider_widget_content" data-filial="'.$filial.'">';
+			echo '<p><a href="/apningstider/">'.__('Åpningstider', 'bibliotider').'</p>';
+			echo '</div>';
 		}
 		echo '</section>';
 	}
