@@ -839,7 +839,7 @@ class Bibliotider_Widget extends WP_Widget {
 		else {
 //			echo $bibliotider->dagsvisning( current_time( 'Y-m-d' ), $filial );
 			echo '<div class="bibliotider_widget_content" data-filial="'.$filial.'">';
-			echo '<p><a href="/apningstider/">'.__('Åpningstider', 'bibliotider').'</p>';
+			echo '<p><a href="/apningstider/">'.__('Åpningstider', 'bibliotider').'</a></p>';
 			echo '</div>';
 		}
 		echo '</section>';
