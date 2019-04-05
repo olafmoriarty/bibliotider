@@ -183,23 +183,50 @@ class Bibliotider {
 		if ( ! $dato ) {
 			$dato = current_time( 'Y-m-d' );
 		}
-		$dagtider = $this->dag( $dato, $filial );
 		$filialnavn = get_option( 'bibliotider_filialer' );
+		$antall_filialer = count($filialnavn);
 		$betjenttyper = get_option( 'bibliotider_betjent' );
 		$tid_naa = '';
 		$tidtabell = '';
+		$tidtabell2 = '';
 		$klokka_er = current_time( 'H:i:s' );
-		foreach( $dagtider as $bt => $dagobjekt ) {
-			if ( $bt > 0 ) {
-				if ( !$tid_naa && $klokka_er >= $dagobjekt->starttid && $klokka_er < $dagobjekt->sluttid ) {
-					$tid_naa = $betjenttyper[ $bt - 1 ][0];
-				}
-				$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[ $bt - 1 ][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
-			}
-
+		
+		// En filial, eller alle?
+		if ($filial == -1) {
+			$filial_min = 0;
+			$filial_max = $antall_filialer - 1;
+		}
+		else {
+			$filial_min = $filial;
+			$filial_max = $filial;
 		}
 
-		if ( $dato == current_time( 'Y-m-d' ) ) {
+		for ($i = $filial_min; $i <= $filial_max; $i++) {
+			$filial_betjenttider = 0;
+			$dagtider = $this->dag( $dato, $filial );
+			if ( $filial == -1 ) {
+				$tidtabell .= '<tr><th colspan="2">' . $filialnavn[ $i ] . '</th></tr>';
+			}
+			foreach( $dagtider as $bt => $dagobjekt ) {
+				if ( $bt > 0 ) {
+					if ( $filial != -1 && !$tid_naa && $klokka_er >= $dagobjekt->starttid && $klokka_er < $dagobjekt->sluttid ) {
+						$tid_naa = $betjenttyper[ $bt - 1 ][0];
+					}
+					$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[ $bt - 1 ][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
+					$tidtabell2 .= '<tr><td class="betjenttype">' . $filialnavn[ $i ] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
+					$filial_betjenttider++;
+				}
+			}
+			if ( ! $filial_betjenttider ) {
+				if ( $filial == -1 ) {
+					$tidtabell .= '<tr><th colspan="2">' . $filialnavn[ $i ] . '</th></tr>';
+				}
+				$tidtabell .= '<tr><td class="betjenttype">' . __( 'Stengt', 'bibliotider' ) . '</td><td>' . __( 'Hele dagen', 'bibliotider' ) . '</td></tr>';
+				$tidtabell2 .= '<tr><td class="betjenttype">' . $filialnavn[ $i ] . '</td><td>' . __( 'Stengt', 'bibliotider' ) . '</td></tr>';
+			}
+		}
+
+		if ( $filial != -1 && $dato == current_time( 'Y-m-d' ) ) {
 			$c .= '<div class="vis_betjenttype';
 			if ( ! $tid_naa ) {
 				$c .= ' betjenttype_stengt';
@@ -212,27 +239,30 @@ class Bibliotider {
 			$c .= '</div>';
 		}
 
-		if ( ! $tidtabell ) {
-			$tidtabell = '<tr><td class="betjenttype">' . __( 'Stengt', 'bibliotider' ) . '</td><td>' . __( 'Hele dagen', 'bibliotider' ) . '</td></tr>';
-		}
-
 		$c .= '<p><strong>' . __( 'Åpningstider i dag:', 'bibliotider' ) . '</strong></p>';
-		$c .= '<table class="bibliotider_tabell">' . $tidtabell . '</table>';
-
-		// Neste dag
-		$dagtider = $this->dag( date( 'Y-m-d', strtotime( $dato . ' + 1 day' ) ), $filial );
-		$tidtabell = '';
-		foreach( $dagtider as $bt => $dagobjekt ) {
-			$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[ $bt - 1 ][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
+		$antall_betjenttyper = count( $betjenttyper );
+		if ($antall_betjenttyper < 2 && $filial == -1) {
+			$c .= '<table class="bibliotider_tabell">' . $tidtabell2 . '</table>';
+		}
+		else {
+			$c .= '<table class="bibliotider_tabell">' . $tidtabell . '</table>';
 		}
 
-		if ( ! $tidtabell ) {
-			$tidtabell = '<tr><td class="betjenttype">' . __( 'Stengt', 'bibliotider' ) . '</td><td>' . __( 'Hele dagen', 'bibliotider' ) . '</td></tr>';
+		if ($morgen && $filial != -1) {
+			// Neste dag
+			$dagtider = $this->dag( date( 'Y-m-d', strtotime( $dato . ' + 1 day' ) ), $filial );
+			$tidtabell = '';
+			foreach( $dagtider as $bt => $dagobjekt ) {
+				$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[ $bt - 1 ][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
+			}
+
+			if ( ! $tidtabell ) {
+				$tidtabell = '<tr><td class="betjenttype">' . __( 'Stengt', 'bibliotider' ) . '</td><td>' . __( 'Hele dagen', 'bibliotider' ) . '</td></tr>';
+			}
+
+			$c .= '<p><strong>' . __( 'Åpningstider i morgen:', 'bibliotider' ) . '</strong></p>';
+			$c .= '<table class="bibliotider_tabell">' . $tidtabell . '</table>';
 		}
-
-		$c .= '<p><strong>' . __( 'Åpningstider i morgen:', 'bibliotider' ) . '</strong></p>';
-		$c .= '<table class="bibliotider_tabell">' . $tidtabell . '</table>';
-
 		$slug = get_option( 'bibliotider_side' );
 		if ( $slug ) {
 			$c .= '<p><a href="' . get_page_link( get_page_by_path( $slug ) ) . '">' . __( 'Alle åpningstider ...' , 'bibliotider' ) . '</a></p>';
@@ -891,6 +921,11 @@ class Bibliotider_Widget extends WP_Widget {
 		
 		// Velg filial
 		echo '<p>' . __( 'Filial:', 'bibliotider' ) . '<br /><select name="'.$this->get_field_name( 'filial' ).'">';
+		echo '<option value="-1"';
+		if ( $valgt_filial == -1 ) {
+			echo ' selected="selected"';
+		}
+		echo '>' . __('Vis alle', 'bibliotider') . '</option>';
 		for ( $i = 0; $i < $filialtall; $i++ ) {
 			echo '<option value="'.$i.'"';
 			if ( $valgt_filial == $i ) {
