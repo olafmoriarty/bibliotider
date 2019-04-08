@@ -920,20 +920,20 @@ class Bibliotider_Widget extends WP_Widget {
 		$filialtall = count( $filialer );
 		
 		// Velg filial
-		echo '<p>' . __( 'Filial:', 'bibliotider' ) . '<br /><select name="'.$this->get_field_name( 'filial' ).'">';
-		echo '<option value="-1"';
+		echo '<p>' . __( 'Filial:', 'bibliotider' ) . '<br /><select name=>';
+		echo '<input type="radio" name="'.$this->get_field_name( 'filial' ).'" value="-1"';
 		if ( $valgt_filial == -1 ) {
-			echo ' selected="selected"';
+			echo ' checked="checked"';
 		}
-		echo '>' . __('Vis alle', 'bibliotider') . '</option>';
+		echo ' /> ' . __('Vis alle', 'bibliotider');
 		for ( $i = 0; $i < $filialtall; $i++ ) {
-			echo '<option value="'.$i.'"';
+			echo '<br /><input type="radio" name="'.$this->get_field_name( 'filial' ).'"  value="'.$i.'"';
 			if ( $valgt_filial == $i ) {
-				echo ' selected="selected"';
+				echo ' checked="checked"';
 			}
-			echo '>' . $filialer[ $i ] . '</option>';
+			echo ' /> ' . $filialer[ $i ];
 		}
-		echo '</select></p>';	
+		echo '</p>';	
 	}
 
 	/**
