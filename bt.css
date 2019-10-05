@@ -3,4 +3,6 @@
 .betjenttype_stengt {background: #ffefef;}
 .betjenttype_naa {color: #00aa00; font-weight: bold; font-size: 200%; text-align: center; margin: 0;}
 .betjenttype_stengt .betjenttype_naa {color: #aa0000;}
-.bibliotider_tabell tr td {white-space: nowrap; padding: 0 !important;}
+.bibliotider_tabell tr td {white-space: nowrap;}
+.bibliotider_aktiv_tid td.tid {color: #00aa00; font-weight: bold;}
+.bibliotider_vistider_filial {background: #f4f4f4; border-radius: 10px; padding: 10px; margin-bottom: 20px;}

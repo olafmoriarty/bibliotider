@@ -23,11 +23,11 @@
 			$gitt_ukedag = date('N');
 
 			for ($i = 0; $i < $antall_filialer; $i++) {
-				echo '<h2>'.$filialer[$i].'</h2>';
-				for ($j = 0; $j < $antall_perioder; $j++) {
+				echo '<h2>'.$filialer[$i][ 0 ].'</h2>';
+				for ($j = 0; $j < $antall_perioder[$i]; $j++) {
 					$faktisk_p = $perioder[$j]['id'];
 
-					echo '<h3>'.sprintf(__('%1$s (fra %2$s til %3$s)', 'bibliotider'), $perioder[$j]['navn'], date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$j]['startdato'])), date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$j]['sluttdato']))).'</h3>';
+					echo '<h3>'.sprintf(__('%1$s (fra %2$s til %3$s)', 'bibliotider'), $perioder[$i][$j]['navn'], date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$i][$j]['startdato'])), date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$i][$j]['sluttdato']))).'</h3>';
 
 					echo '<table class="apningstider">';
 
@@ -75,7 +75,7 @@
 			echo '<p>'.__('Filial:', 'bibliotider').'<br/>';
 			echo '<select name="filial">';
 			for ($i = 0; $i < $antall_filialer; $i++) {
-				echo '<option value="'.$i.'">'.$filialer[$i].'</option>';
+				echo '<option value="'.$i.'">'.$filialer[$i][0].'</option>';
 			}
 			echo '</select>';
 			echo '</p>';
@@ -115,14 +115,55 @@
 		echo '<form method="post" action="">';
 
 		echo '<p>'.__('Rediger lista over avdelinger/filialer ved å redigere teksten i feltet under. Hver filial må stå på en egen linje.', 'bibliotider').'</p>';
-		echo '<textarea name="filialliste">'.implode("\n", $filialer).'</textarea>';
+
+		$antall_linjer = count( $filialer );
+		$filialer_txt = '';
+
+		for ($i = 0; $i < $antall_linjer; $i++) {
+			if ($i > 0) {
+				$filialer_txt .= "\n";
+			}
+			$filialer_txt .= implode('|', $filialer[$i]);
+		}
+
+		echo '<textarea name="filialliste">'.$filialer_txt.'</textarea>';
 		echo '<p><input type="hidden" name="fane_sendt_inn" value="filialer"><input type="submit" value="'.__('Lagre endringer', 'bibliotider').'" /></p>';
 		echo '</form>';
 	?>
 
 	</section>
     <section class="tab-panel">
+	<?php
+		// REDIGER PERIODER
+		echo '<form method="post" action="">';
 
+		echo '<p>'.__('Her kan du redigere hvilke perioder året er delt inn i, f.eks. sommertid og vintertid.', 'bibliotider').'</p>';
+
+			for ($i = 0; $i < $antall_filialer; $i++) {
+				echo '<h2>'.$filialer[$i].'</h2>';
+				if (!$antall_perioder[$i]) {
+					echo '<p>'.__('Ingen perioder er registrert for denne filialen. Filialen er oppført som stengt hele året inntil du legger til minst en periode.').'</p>';
+					echo '<p>'.sprintf(__('Legg til %1$s nye perioder på filialen %2$s', 'bibliotider'), '<input type="text" name="ny-periode-'.$i.'" value="0" size="2" />', '<strong>'.$filialer[$i].'</strong>').'</p>';
+				}
+				else {
+					echo '<table>';
+					for ($j = 0; $j < $antall_perioder[$i]; $j++) {
+						echo '<tr>';
+						echo '<td><input type="text" name="periodenavn-'.$perioder[$i][$j]['id'].'" value="'.sanitize_text_field($perioder[$i][$j]['navn']).'" /></td>';
+						echo '<td><input type="text" name="periodestart-'.$perioder[$i][$j]['id'].'" size="6" value="'.date('d.m.', strtotime($perioder[$i][$j]['startdato'])).'" /></td>';
+						echo '<td><input type="text" name="periodeslutt-'.$perioder[$i][$j]['id'].'" size="6" value="'.date('d.m.', strtotime($perioder[$i][$j]['sluttdato'])).'" /></td>';
+						echo '</tr>';
+					}
+					echo '</table>';
+					echo '<p>'.sprintf(__('Legg til %1$s nye perioder på filialen %2$s', 'bibliotider'), '<input type="text" name="ny-periode-'.$i.'" value="0" size="2" />', '<strong>'.$filialer[$i].'</strong>').'</p>';
+				}
+			}
+
+		
+
+		echo '<p><input type="hidden" name="fane_sendt_inn" value="perioder"><input type="submit" value="'.__('Lagre endringer', 'bibliotider').'" /></p>';
+		echo '</form>';
+	?>
     </section>
     <section class="tab-panel">
 	<?php

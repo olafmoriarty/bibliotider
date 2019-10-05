@@ -4,8 +4,8 @@
 Plugin Name:  Bibliotekets åpningstider
 Plugin URI:   https://github.com/skibibliotek/bibliotider/
 Description:  Registrering og visning av åpningstider, tilpasset bibliotek. Skiller mellom betjent, selvbetjent og meråpent.
-Version:      0.0.1
-Author:       Ski bibliotek
+Version:      0.0.2
+Author:       Olaf Moriarty Solstrand
 Author URI:   http://skibibliotek.no
 License:      GNU General Public License v2.0
 License URI:  https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
@@ -90,14 +90,26 @@ class Bibliotider {
 		 ?>
 		<script type="text/javascript" >
 		jQuery(document).ready(function($) {
+			
+			jQuery(".bibliotider_widget_content").each(function( index ) {
+				var current_thing = jQuery(this);
 
-			var data = {
-				'action': 'bibliotider_refresh_widget',
-				'tid': '<?php echo date('Y-m-d H:i'); ?>'
-			};
+				var data = {
+					'action': 'bibliotider_refresh_widget',
+					'tid': '<?php echo date('Y-m-d H:i'); ?>',
+					'filial': current_thing.data('filial')
+				};
 
-			// since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
-			jQuery.post('<?php echo admin_url( 'admin-ajax.php' ) ?>', data, function(response) { jQuery(".bibliotider_widget_content").html(response) });
+				// since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
+				jQuery.post('<?php echo admin_url( 'admin-ajax.php' ) ?>', data, function(response) { current_thing.html(response) });
+			});
+			jQuery(".bibliotider_vistider_filial .bibliotider_vistider_perioder").hide();
+
+			jQuery(".bibliotider_vistider_filial .vis_detaljer a").click(function(){
+				jQuery(this).parent().hide();
+				jQuery("#bt-filial-" + jQuery(this).data("filial") + " .bibliotider_vistider_perioder").show();
+			});
+
 		});
 		</script> <?php
 	}
@@ -122,7 +134,7 @@ class Bibliotider {
 	 * @since 0.0.1
 	 */
 	function css_hoved() {
-		wp_register_style( 'bibliotider-css', plugins_url( 'bt.css', __FILE__ ) );
+		wp_register_style( 'bibliotider-css', plugins_url( 'bt.css', __FILE__ ), array(), '2019.10.05' );
 		wp_enqueue_style( 'bibliotider-css' );
 	}
 
@@ -151,7 +163,7 @@ class Bibliotider {
 		$result = $wpdb->get_results( $query, OBJECT_K );
 		
 		if (0 == $wpdb->num_rows) {
-			$query = 'SELECT t.betjent, TIME_FORMAT(t.starttid, \'%H:%i\') AS starttid, TIME_FORMAT(t.sluttid, \'%H:%i\') AS sluttid, p.navn FROM ' . $this->tabnavn . ' AS t LEFT JOIN ' . $this->tabnavn . '_perioder AS p ON t.periode = p.id WHERE t.filial = ' . $filial . ' AND ((p.startdato <= p.sluttdato AND \'' . $dato . '\' BETWEEN DATE_FORMAT(p.startdato, \'' . $aar . '-%m-%d\') AND DATE_FORMAT(p.sluttdato, \'' . $aar . '-%m-%d\')) OR (p.startdato > p.sluttdato AND (\'' . $dato . '\' >= DATE_FORMAT(p.startdato, \'' . $aar . '-%m-%d\') OR \'' . $dato . '\' <= DATE_FORMAT(p.sluttdato, \'' . $aar . '-%m-%d\')))) AND t.ukedag = WEEKDAY(\'' . $dato . '\') + 1';
+			$query = 'SELECT t.betjent, TIME_FORMAT(t.starttid, \'%H:%i\') AS starttid, TIME_FORMAT(t.sluttid, \'%H:%i\') AS sluttid, p.navn FROM ' . $this->tabnavn . ' AS t LEFT JOIN ' . $this->tabnavn . '_perioder AS p ON t.periode = p.id WHERE t.filial = ' . $filial . ' AND p.filial = t.filial AND ((p.startdato <= p.sluttdato AND \'' . $dato . '\' BETWEEN DATE_FORMAT(p.startdato, \'' . $aar . '-%m-%d\') AND DATE_FORMAT(p.sluttdato, \'' . $aar . '-%m-%d\')) OR (p.startdato > p.sluttdato AND (\'' . $dato . '\' >= DATE_FORMAT(p.startdato, \'' . $aar . '-%m-%d\') OR \'' . $dato . '\' <= DATE_FORMAT(p.sluttdato, \'' . $aar . '-%m-%d\')))) AND t.ukedag = WEEKDAY(\'' . $dato . '\') + 1';
 			$result = $wpdb->get_results( $query, OBJECT_K );
 		}
 		return $result;
@@ -190,7 +202,7 @@ class Bibliotider {
 		$tidtabell = '';
 		$tidtabell2 = '';
 		$klokka_er = current_time( 'H:i:s' );
-		
+
 		// En filial, eller alle?
 		if ($filial == -1) {
 			$filial_min = 0;
@@ -202,44 +214,58 @@ class Bibliotider {
 		}
 
 		for ($i = $filial_min; $i <= $filial_max; $i++) {
+
+			if ( ! is_array($filialnavn[ $i ] )) {
+				break;
+			}
 			$filial_betjenttider = 0;
-			$dagtider = $this->dag( $dato, $filial );
+			
+			$dagtider = $this->dag( $dato, $i );
 			if ( $filial == -1 ) {
-				$tidtabell .= '<tr><th colspan="2">' . $filialnavn[ $i ] . '</th></tr>';
+				$tidtabell .= '<tr><th colspan="2"><a href="' . $filialnavn[ $i ][ 1 ] . '">' . $filialnavn[ $i ][ 0 ] . '</a></th></tr>';
 			}
 			foreach( $dagtider as $bt => $dagobjekt ) {
 				if ( $bt > 0 ) {
-					if ( $filial != -1 && !$tid_naa && $klokka_er >= $dagobjekt->starttid && $klokka_er < $dagobjekt->sluttid ) {
-						$tid_naa = $betjenttyper[ $bt - 1 ][0];
+					$aktiv_tid = 0;
+					if ( $klokka_er >= $dagobjekt->starttid && $klokka_er < $dagobjekt->sluttid ) {
+						$aktiv_tid = 1;
+						if ($filial != -1 && !$tid_naa) {
+							$tid_naa = $betjenttyper[ $bt - 1 ][0];
+						}
 					}
-					$tidtabell .= '<tr><td class="betjenttype">' . $betjenttyper[ $bt - 1 ][0] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
-					$tidtabell2 .= '<tr><td class="betjenttype">' . $filialnavn[ $i ] . '</td><td>' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
+					$tidtabell .= '<tr';
+					if ($aktiv_tid) {
+						$tidtabell .= ' class="bibliotider_aktiv_tid"';
+					}
+					$tidtabell .= '><td class="betjenttype">' . $betjenttyper[ $bt - 1 ][0] . '</td><td class="tid">' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
+					$tidtabell2 .= '<tr';
+					if ($aktiv_tid) {
+						$tidtabell2 .= ' class="bibliotider_aktiv_tid"';
+					}
+					$tidtabell2 .= '><td class="betjenttype"><a href="' . $filialnavn[ $i ][ 1 ] . '">' . $filialnavn[ $i ][ 0 ] . '</a></td><td class="tid">' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
 					$filial_betjenttider++;
 				}
 			}
 			if ( ! $filial_betjenttider ) {
-				if ( $filial == -1 ) {
-					$tidtabell .= '<tr><th colspan="2">' . $filialnavn[ $i ] . '</th></tr>';
-				}
-				$tidtabell .= '<tr><td class="betjenttype">' . __( 'Stengt', 'bibliotider' ) . '</td><td>' . __( 'Hele dagen', 'bibliotider' ) . '</td></tr>';
-				$tidtabell2 .= '<tr><td class="betjenttype">' . $filialnavn[ $i ] . '</td><td>' . __( 'Stengt', 'bibliotider' ) . '</td></tr>';
+				$tidtabell .= '<tr><td class="betjenttype">' . __( 'Stengt', 'bibliotider' ) . '</td><td class="tid">' . __( 'Hele dagen', 'bibliotider' ) . '</td></tr>';
+				$tidtabell2 .= '<tr><td class="betjenttype"><a href="' . $filialnavn[ $i ][ 1 ] . '">' . $filialnavn[ $i ][ 0 ] . '</a></td><td class="tid">' . __( 'Stengt', 'bibliotider' ) . '</td></tr>';
 			}
 		}
 
-		if ( $filial != -1 && $dato == current_time( 'Y-m-d' ) ) {
+		if ( $filial != -1 && $dato == current_time( 'Y-m-d' ) && is_array($filialnavn[$filial]) ) {
 			$c .= '<div class="vis_betjenttype';
 			if ( ! $tid_naa ) {
 				$c .= ' betjenttype_stengt';
 				$tid_naa = __( 'Stengt', 'bibliotider' );
 			}
 			$c .= '">';
-			$c .= '<p class="vi_er_naa">' . sprintf( __( '%s er nå', 'bibliotider' ), $filialnavn[ $filial ] ) . '</p>';
+			$c .= '<p class="vi_er_naa">' . sprintf( __( '%s er nå', 'bibliotider' ), $filialnavn[ $filial ][ 0 ] ) . '</p>';
 
 			$c .= '<p class="betjenttype_naa">' . $tid_naa . '</p>' . "\n";
 			$c .= '</div>';
 		}
 
-		$c .= '<p><strong>' . __( 'Åpningstider i dag:', 'bibliotider' ) . '</strong></p>';
+		$c .= '<h2>' . __( 'Åpningstider i dag:', 'bibliotider' ) . '</h2>';
 		$antall_betjenttyper = count( $betjenttyper );
 		if ($antall_betjenttyper < 2 && $filial == -1) {
 			$c .= '<table class="bibliotider_tabell">' . $tidtabell2 . '</table>';
@@ -300,6 +326,9 @@ class Bibliotider {
 
 		$verdier = array();
 
+		$perioder = array();
+		$antall_perioder = array();
+
 		// Henter informasjon om filialer
 		$filialer = get_option( 'bibliotider_filialer' );
 		$antall_filialer = count( $filialer );
@@ -308,15 +337,17 @@ class Bibliotider {
 		$betjenttyper = get_option( 'bibliotider_betjent' );
 		$antall_betjenttyper = count( $betjenttyper );
 
-		// Henter informasjon om perioder i året (sommertid, vintertid ...)
-		$perioder = $wpdb->get_results( 'SELECT id, navn, startdato, sluttdato FROM ' . $this->tabnavn . '_perioder ORDER BY id', ARRAY_A );
-		$antall_perioder = count( $perioder );
-
 		// Henter tidligere verdier fra basen
+
 		for ( $f = 0; $f < $antall_filialer; $f++ ) {
+
+			// Henter informasjon om perioder i året (sommertid, vintertid ...)
+			$perioder[$f] = $wpdb->get_results( 'SELECT id, navn, startdato, sluttdato FROM ' . $this->tabnavn . '_perioder WHERE filial = ' . $f . ' ORDER BY id', ARRAY_A );
+			$antall_perioder[$f] = count( $perioder[$f] );
+
 			// Sommertid/vintertid
-			for ( $p = 0; $p < $antall_perioder; $p++ ) {
-				$faktisk_p = $perioder[ $p ]['id'];
+			for ( $p = 0; $p < $antall_perioder[$f]; $p++ ) {
+				$faktisk_p = $perioder[$f][ $p ]['id'];
 				// Ukedag
 				for ( $d = 1; $d <= 7; $d++ ) {
 					// Betjent/selvbetjent/meråpent
@@ -337,13 +368,14 @@ class Bibliotider {
 		// ----- Når brukeren har endret standardåpningstider -----
 
 		if ( isset( $_POST['fane_sendt_inn'] ) && $_POST['fane_sendt_inn'] == 'standardtider' ) {
+			
 			// NB legg til masse validering
 
 			// Filial
 			for ( $f = 0; $f < $antall_filialer; $f++ ) {
 				// Sommertid/vintertid
-				for ( $p = 0; $p < $antall_perioder; $p++ ) {
-					$faktisk_p = $perioder[ $p ]['id'];
+				for ( $p = 0; $p < $antall_perioder[ $f ]; $p++ ) {
+					$faktisk_p = $perioder[ $f ][ $p ]['id'];
 					// Ukedag
 					for ( $d = 1; $d <= 7; $d++ ) {
 						// Betjent/selvbetjent/meråpent
@@ -388,6 +420,7 @@ class Bibliotider {
 					}
 				}
 			}
+			
 		}
 
 		// ----- Når brukeren har lagt til et unntak -----
@@ -442,7 +475,7 @@ class Bibliotider {
 			for ( $i = 0; $i < $antall; $i++ ) {
 				$nf = trim( $filialliste[ $i ] );
 				if ( $nf ) {
-					$filialer_ny[] = $nf;
+					$filialer_ny[] = explode( '|', $nf );
 					$antall_filialer_ny++;
 				}
 			}
@@ -451,6 +484,45 @@ class Bibliotider {
 				$filialer = $filialer_ny;
 				$antall_filialer = $antall_filialer_ny;
 			}
+		}
+
+		// ----- Når brukeren har endret lista over perioder -----
+
+		elseif ( isset($_POST['fane_sendt_inn']) && $_POST['fane_sendt_inn'] == 'perioder' ) {
+
+
+			// Oppdater perioder
+			
+			// Filial
+			for ( $f = 0; $f < $antall_filialer; $f++ ) {
+				// Sommertid/vintertid
+				for ( $p = 0; $p < $antall_perioder[ $f ]; $p++ ) {
+					$faktisk_p = $perioder[ $f ][ $p ]['id'];
+
+					$periodenavn = $_POST[ 'periodenavn-' . $faktisk_p ];
+					$periodestart = $_POST[ 'periodestart-' . $faktisk_p ];
+					$periodeslutt = $_POST[ 'periodeslutt-' . $faktisk_p ];
+
+					$wpdb->update( $this->tabnavn . '_perioder', array( 'navn' => $periodenavn, 'startdato' => date('2012-m-d', strtotime($periodestart . '2012')), 'sluttdato' => date('2012-m-d', strtotime($periodeslutt . '2012')) ), array( 'filial' => $f, 'id' => $faktisk_p ), array( '%s', '%s', '%s' ), array( '%d', '%d' ) );
+				}
+			}
+
+			// Sett inn nye perioder
+
+			for ($i = 0; $i < $antall_filialer; $i++) {
+				if (is_numeric($_POST['ny-periode-'.$i]) && $_POST['ny-periode-'.$i] > 0) {
+					for ($j = 0; $j < $_POST['ny-periode-'.$i]; $j++) {
+						$wpdb->insert(
+							$this->tabnavn . '_perioder', 
+							array( 
+								'filial' => $i
+							) 
+						);
+					}
+					$antall_perioder[ $i ] += $_POST['ny-periode-' . $i];
+				}
+			}
+
 		}
 
 		// ----- Når brukeren har endret lista over betjenttyper -----
@@ -552,6 +624,7 @@ class Bibliotider {
 		  navn varchar(100) NOT NULL,
 		  startdato date DEFAULT '0000-00-00' NOT NULL,
 		  sluttdato date DEFAULT '0000-00-00' NOT NULL,
+		  filial int(3) DEFAULT 0 NOT NULL,
 		  PRIMARY KEY  (id)
 		) $charset_collate;";
 		dbDelta( $sql );
@@ -567,7 +640,8 @@ class Bibliotider {
 				array( 
 					'navn'      => __( 'Vintertid', 'bibliotider' ), 
 					'startdato' => '2012-09-01', 
-					'sluttdato' => '2012-05-31' 
+					'sluttdato' => '2012-05-31',
+					'filial'    => 0
 				) 
 			);
 			$wpdb->insert(
@@ -575,14 +649,15 @@ class Bibliotider {
 				array( 
 					'navn' => __( 'Sommertid', 'bibliotider' ), 
 					'startdato' => '2012-06-01', 
-					'sluttdato' => '2012-08-31' 
+					'sluttdato' => '2012-08-31',
+					'filial'    => 0 
 				) 
 			);
 		}
 
 		if ( ! get_option( 'bibliotider_filialer' ) ) {
 			// Legger default liste over filialer i options
-			update_option( 'bibliotider_filialer', array( __( 'Hovedbiblioteket', 'bibliotider' ) ) );
+			update_option( 'bibliotider_filialer', array( array(__( 'Hovedbiblioteket', 'bibliotider' )) ) );
 		}
 
 		if ( ! get_option( 'bibliotider_betjent' ) ) {
@@ -616,7 +691,13 @@ class Bibliotider {
 // R
 
 	function refresh_widget() {
-		echo $this->dagsvisning( current_time( 'Y-m-d' ) );
+		if (isset($_POST['filial']) && $_POST['filial']) {
+			$filial = $_POST['filial'];
+		}
+		else {
+			$filial = 0;
+		}
+		echo $this->dagsvisning( current_time( 'Y-m-d' ), $filial );
 		wp_die();
 	}
 // S
@@ -689,6 +770,8 @@ class Bibliotider {
 		
 		$verdier = array();
 
+		
+
 		// Henter informasjon om filialer
 		$filialer = get_option( 'bibliotider_filialer' );
 		$antall_filialer = count( $filialer );
@@ -697,15 +780,19 @@ class Bibliotider {
 		$betjenttyper = get_option( 'bibliotider_betjent' );
 		$antall_betjenttyper = count( $betjenttyper );
 
-		// Henter informasjon om perioder i året (sommertid, vintertid ...)
-		$perioder = $wpdb->get_results( 'SELECT id, navn, startdato, sluttdato FROM ' . $this->tabnavn . '_perioder ORDER BY id', ARRAY_A );
-		$antall_perioder = count( $perioder );
-
 		// Henter tidligere verdier fra basen
+		$perioder = array();
+		$antall_perioder = array();
 		for ( $f = 0; $f < $antall_filialer; $f++ ) {
+
+			// Henter informasjon om perioder i året (sommertid, vintertid ...)
+			$perioder[ $f ] = $wpdb->get_results( 'SELECT id, navn, startdato, sluttdato FROM ' . $this->tabnavn . '_perioder  WHERE filial = ' . $f . ' ORDER BY id', ARRAY_A );
+			$antall_perioder[ $f ] = count( $perioder[$f] );
+
+
 			// Sommertid/vintertid
-			for ( $p = 0; $p < $antall_perioder; $p++ ) {
-				$faktisk_p = $perioder[ $p ]['id'];
+			for ( $p = 0; $p < $antall_perioder[$f]; $p++ ) {
+				$faktisk_p = $perioder[ $f ][ $p ]['id'];
 				// Ukedag
 				for ( $d = 1; $d <= 7; $d++ ) {
 					// Betjent/selvbetjent/meråpent
@@ -721,99 +808,110 @@ class Bibliotider {
 		if ( get_option( 'bibliotider_side' ) && is_page( get_option( 'bibliotider_side' ) ) && !$this->vis_tider_kjort ) {
 			$this->vis_tider_kjort = true;
 			$c = '';
-			$c .=  '<h2>' . __( 'Åpningstider denne uka:', 'bibliotider' ) . '</h2>';
-			$c .= $this->uke( date( 'Y-m-d' ) );
-			$c .=  '<h2>' . __( 'Avvik den nærmeste måneden:', 'bibliotider' ) . '</h2>';
-			$query = 'SELECT u_startdato, u_sluttdato FROM ' . $this->tabnavn . ' WHERE u_startdato BETWEEN CAST(\'' . date( 'Y-m-d' ) . '\' AS DATE) AND CAST(\'' . date( 'Y-m-d', strtotime( '+1 month' ) ) . '\' AS DATE)';
-			$result = $wpdb->get_results( $query, OBJECT_K );
-			$num = $wpdb->num_rows;
-			if (0 == $num) {
-				$c .=  '<p>Ingen avvik registrert</p>';
-			}
-			else {
-				ksort( $result );
-				$c .= '<table>';
 
-				// Headerrad
-				$c .=  '<tr>';
-				$c .=  '<th>' . __( 'Dag', 'bibliotider' ) . '</th>';
-				for ( $i = 0; $i < $antall_betjenttyper; $i++ ) {
-					$c .=  '<th>' . $betjenttyper[ $i ][0] . '</th>';
+			for ($f = 0; $f < $antall_filialer; $f++ ) {
+				$c .= '<div class="bibliotider_vistider_filial" id="bt-filial-'.$f.'">';
+				$c .= '<h2>'.$filialer[$f][0].'</h2>';
+				$c .=  '<h3>' . __( 'Åpningstider denne uka:', 'bibliotider' ) . '</h3>';
+				$c .= $this->uke( date( 'Y-m-d' ), $f );
+				$c .=  '<h3>' . __( 'Avvik den nærmeste måneden:', 'bibliotider' ) . '</h3>';
+				$query = 'SELECT u_startdato, u_sluttdato FROM ' . $this->tabnavn . ' WHERE u_startdato BETWEEN CAST(\'' . date( 'Y-m-d' ) . '\' AS DATE) AND CAST(\'' . date( 'Y-m-d', strtotime( '+1 month' ) ) . '\' AS DATE) AND filial = '.$f;
+				$result = $wpdb->get_results( $query, OBJECT_K );
+				$num = $wpdb->num_rows;
+				if (0 == $num) {
+					$c .=  '<p>Ingen avvik registrert</p>';
 				}
-				$c .=  '</tr>';
+				else {
+					ksort( $result );
+					$c .= '<table>';
 
-				foreach ($result AS $dato => $obj) {
-							$eksplodert_tid = explode( '-', $dato );
-							//	$datotid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2], $eksplodert_tid[0] );
-
-					$dagtid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2], $eksplodert_tid[0] );
-
+					// Headerrad
 					$c .=  '<tr>';
-					$c .=  '<td>';
-					$c .=  date_i18n( __( 'l d.m.', 'bibliotider' ), $dagtid );
-					$c .=  '</td>';
-
-					// Hent info om denne dagens åpningstider
-					$dagtider = $this->dag( $obj->u_startdato );
-						for ( $i = 0; $i < $antall_betjenttyper; $i++ ) {
-							$c .=  '<td>';
-							if ( isset( $dagtider[ $i + 1 ] ) ) {
-								$c .=  substr( $dagtider[ $i + 1 ]->starttid, 0, 5 );
-								$c .=  '&ndash;';
-								$c .=  substr( $dagtider[ $i + 1 ]->sluttid, 0, 5 );
-							}
-							else {
-								$c .=  '&ndash;';
-							}
-							$c .=  '</td>';
-						}
+					$c .=  '<th>' . __( 'Dag', 'bibliotider' ) . '</th>';
+					for ( $i = 0; $i < $antall_betjenttyper; $i++ ) {
+						$c .=  '<th>' . $betjenttyper[ $i ][0] . '</th>';
+					}
 					$c .=  '</tr>';
 
-					
+					foreach ($result AS $dato => $obj) {
+								$eksplodert_tid = explode( '-', $dato );
+								//	$datotid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2], $eksplodert_tid[0] );
+
+						$dagtid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2], $eksplodert_tid[0] );
+
+						$c .=  '<tr>';
+						$c .=  '<td>';
+						$c .=  date_i18n( __( 'l d.m.', 'bibliotider' ), $dagtid );
+						$c .=  '</td>';
+
+						// Hent info om denne dagens åpningstider
+						$dagtider = $this->dag( $obj->u_startdato, $f );
+							for ( $i = 0; $i < $antall_betjenttyper; $i++ ) {
+								$c .=  '<td>';
+								if ( isset( $dagtider[ $i + 1 ] ) ) {
+									$c .=  substr( $dagtider[ $i + 1 ]->starttid, 0, 5 );
+									$c .=  '&ndash;';
+									$c .=  substr( $dagtider[ $i + 1 ]->sluttid, 0, 5 );
+								}
+								else {
+									$c .=  '&ndash;';
+								}
+								$c .=  '</td>';
+							}
+						$c .=  '</tr>';
+
+						
+					}
+					$c .=  '</table>';
 				}
-				$c .=  '</table>';
-			}
 
-			$eksplodert_tid = explode('-', date('Y-m-d'));
-			$gitt_ukedag = date('N');
+				$eksplodert_tid = explode('-', date('Y-m-d'));
+				$gitt_ukedag = date('N');
 
-			$i = 0;
+				$i = 0;
+				
+				$c .= '<p class="vis_detaljer"><a href="#0" data-filial="'.$f.'">'.__('Vis detaljer ...').'</a></p>';
 
-			for ($j = 0; $j < $antall_perioder; $j++) {
-					$faktisk_p = $perioder[$j]['id'];
-			
-				$c .= '<h2>'.sprintf(__('%1$s (fra %2$s til %3$s):', 'bibliotider'), $perioder[$j]['navn'], date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$j]['startdato'])), date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$j]['sluttdato']))).'</h3>';
+				$c .= '<div class="bibliotider_vistider_perioder">';
 
-				$c .= '<table class="apningstider">';
+				for ($j = 0; $j < $antall_perioder[$f]; $j++) {
+						$faktisk_p = $perioder[$f][$j]['id'];
+				
+					$c .= '<h3>'.sprintf(__('%1$s (fra %2$s til %3$s):', 'bibliotider'), $perioder[$f][$j]['navn'], date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$f][$j]['startdato'])), date_i18n(__('j. F', 'bibliotider'), strtotime($perioder[$f][$j]['sluttdato']))).'</h3>';
 
-				// Headerrad
-				$c .= '<tr>';
-				$c .= '<th>'.__('Dag', 'bibliotider').'</th>';
-				for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
-					$c .= '<th>'.$betjenttyper[$h][0].'</th>';
-				}
-				$c .= '</tr>';
+					$c .= '<table class="apningstider">';
 
-				for ( $d = 1; $d <= 7; $d++) {
-					$dagtid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2] - $gitt_ukedag + $d, $eksplodert_tid[0] );
-					$dag = date( 'Y-m-d', $dagtid );
-
+					// Headerrad
 					$c .= '<tr>';
-					$c .= '<td>';
-					$c .= date_i18n( __('l', 'bibliotider'), $dagtid );
-					$c .= '</td>';
-
-					// Hent info om denne dagens åpningstider
+					$c .= '<th>'.__('Dag', 'bibliotider').'</th>';
 					for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
-						$c .= '<td>';
-						$c .= $verdier[$i][$j][$d][$h]['starttid'];
-						$c .= '&ndash;';
-						$c .= $verdier[$i][$j][$d][$h]['sluttid'];
-						$c .= '</td>';
+						$c .= '<th>'.$betjenttyper[$h][0].'</th>';
 					}
 					$c .= '</tr>';
-				}
-				$c .= '</table>';
+
+					for ( $d = 1; $d <= 7; $d++) {
+						$dagtid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2] - $gitt_ukedag + $d, $eksplodert_tid[0] );
+						$dag = date( 'Y-m-d', $dagtid );
+
+						$c .= '<tr>';
+						$c .= '<td>';
+						$c .= date_i18n( __('l', 'bibliotider'), $dagtid );
+						$c .= '</td>';
+
+						// Hent info om denne dagens åpningstider
+						for ( $h = 0; $h < $antall_betjenttyper; $h++ ) {
+							$c .= '<td>';
+							$c .= $verdier[$f][$j][$d][$h]['starttid'];
+							$c .= '&ndash;';
+							$c .= $verdier[$f][$j][$d][$h]['sluttid'];
+							$c .= '</td>';
+						}
+						$c .= '</tr>';
+					}
+					$c .= '</table>';
+				} 
+				$c .= '</div>';
+				$c .= '</div>';
 			}
 			return $c;
 		}
@@ -906,8 +1004,8 @@ class Bibliotider_Widget extends WP_Widget {
 		echo ' /> '.__( 'Ukesvisning', 'bibliotider' ).'</p>';
 		
 		// Hvilken filial er valgt?
-		if ( isset( $instance['filial'] ) && (int)$instance['filial'] >= 0 && (int)$instance['filial'] < $antall_filialer ) {
-			$valgt_filial = instance['filial'];
+		if ( isset( $instance['filial'] ) && (int)$instance['filial'] >= -1 && (int)$instance['filial'] < $antall_filialer ) {
+			$valgt_filial = $instance['filial'];
 		}
 		else {
 			// Standardfilial: Hovedbiblioteket
@@ -920,7 +1018,7 @@ class Bibliotider_Widget extends WP_Widget {
 		$filialtall = count( $filialer );
 		
 		// Velg filial
-		echo '<p>' . __( 'Filial:', 'bibliotider' ) . '<br /><select name=>';
+		echo '<p>' . __( 'Filial:', 'bibliotider' ) . '<br />';
 		echo '<input type="radio" name="'.$this->get_field_name( 'filial' ).'" value="-1"';
 		if ( $valgt_filial == -1 ) {
 			echo ' checked="checked"';
@@ -931,7 +1029,7 @@ class Bibliotider_Widget extends WP_Widget {
 			if ( $valgt_filial == $i ) {
 				echo ' checked="checked"';
 			}
-			echo ' /> ' . $filialer[ $i ];
+			echo ' /> ' . $filialer[ $i ][ 0 ];
 		}
 		echo '</p>';	
 	}
