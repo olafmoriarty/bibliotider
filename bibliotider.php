@@ -811,7 +811,12 @@ class Bibliotider {
 
 			for ($f = 0; $f < $antall_filialer; $f++ ) {
 				$c .= '<div class="bibliotider_vistider_filial" id="bt-filial-'.$f.'">';
-				$c .= '<h2>'.$filialer[$f][0].'</h2>';
+				if (isset($filialer[$f][1]) && $filialer[$f][1]) {
+					$c .= '<h2><a href="' . $filialer[$f][1] . '">'.$filialer[$f][0].'</a></h2>';
+				}
+				else {
+					$c .= '<h2>'.$filialer[$f][0].'</h2>';
+				}
 				$c .=  '<h3>' . __( 'Åpningstider denne uka:', 'bibliotider' ) . '</h3>';
 				$c .= $this->uke( date( 'Y-m-d' ), $f );
 				$c .=  '<h3>' . __( 'Avvik den nærmeste måneden:', 'bibliotider' ) . '</h3>';
