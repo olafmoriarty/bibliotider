@@ -134,7 +134,7 @@ class Bibliotider {
 	 * @since 0.0.1
 	 */
 	function css_hoved() {
-		wp_register_style( 'bibliotider-css', plugins_url( 'bt.css', __FILE__ ), array(), '2019.10.05' );
+		wp_register_style( 'bibliotider-css', plugins_url( 'bt.css', __FILE__ ), array(), '2019.10.06' );
 		wp_enqueue_style( 'bibliotider-css' );
 	}
 
@@ -221,9 +221,10 @@ class Bibliotider {
 			$filial_betjenttider = 0;
 			
 			$dagtider = $this->dag( $dato, $i );
+			/*
 			if ( $filial == -1 ) {
 				$tidtabell .= '<tr><th colspan="2"><a href="' . $filialnavn[ $i ][ 1 ] . '">' . $filialnavn[ $i ][ 0 ] . '</a></th></tr>';
-			}
+			}*/
 			foreach( $dagtider as $bt => $dagobjekt ) {
 				if ( $bt > 0 ) {
 					$aktiv_tid = 0;
@@ -233,11 +234,21 @@ class Bibliotider {
 							$tid_naa = $betjenttyper[ $bt - 1 ][0];
 						}
 					}
-					$tidtabell .= '<tr';
-					if ($aktiv_tid) {
-						$tidtabell .= ' class="bibliotider_aktiv_tid"';
+					if (!$filial_betjenttider && $bt > 1 && $filial == -1) {
+						$tidtabell .= '<tr><td><a href="' . $filialnavn[ $i ][ 1 ] . '">' . $filialnavn[ $i ][ 0 ] . '</a></td><td></td></tr>';
 					}
-					$tidtabell .= '><td class="betjenttype">' . $betjenttyper[ $bt - 1 ][0] . '</td><td class="tid">' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
+					$tidtabell .= '<tr class="bibliotider_bt_'.$bt;
+					if ($aktiv_tid) {
+						$tidtabell .= ' bibliotider_aktiv_tid';
+					}
+					$tidtabell .= '"><td class="betjenttype">';
+					if (1 == $bt) {
+						$tidtabell .= '<a href="' . $filialnavn[ $i ][ 1 ] . '">' . $filialnavn[ $i ][ 0 ] . '</a>';
+					}
+					else {
+						$tidtabell .= $betjenttyper[ $bt - 1 ][0];
+					}
+					$tidtabell .= '</td><td class="tid">' . $dagobjekt->starttid . '&ndash;' . $dagobjekt->sluttid . '</td></tr>';
 					$tidtabell2 .= '<tr';
 					if ($aktiv_tid) {
 						$tidtabell2 .= ' class="bibliotider_aktiv_tid"';
@@ -247,8 +258,9 @@ class Bibliotider {
 				}
 			}
 			if ( ! $filial_betjenttider ) {
-				$tidtabell .= '<tr><td class="betjenttype">' . __( 'Stengt', 'bibliotider' ) . '</td><td class="tid">' . __( 'Hele dagen', 'bibliotider' ) . '</td></tr>';
-				$tidtabell2 .= '<tr><td class="betjenttype"><a href="' . $filialnavn[ $i ][ 1 ] . '">' . $filialnavn[ $i ][ 0 ] . '</a></td><td class="tid">' . __( 'Stengt', 'bibliotider' ) . '</td></tr>';
+				// $tidtabell .= '<tr><td class="betjenttype">' . __( 'Stengt', 'bibliotider' ) . '</td><td class="tid">' . __( 'Hele dagen', 'bibliotider' ) . '</td></tr>';
+				$tidtabell .= '<tr class="bibliotider_bt_stengt"><td class="betjenttype"><a href="' . $filialnavn[ $i ][ 1 ] . '">' . $filialnavn[ $i ][ 0 ] . '</a></td><td class="tid">' . __( 'Stengt', 'bibliotider' ) . '</td></tr>';
+				$tidtabell2 .= '<tr class="bibliotider_bt_stengt"><td class="betjenttype"><a href="' . $filialnavn[ $i ][ 1 ] . '">' . $filialnavn[ $i ][ 0 ] . '</a></td><td class="tid">' . __( 'Stengt', 'bibliotider' ) . '</td></tr>';
 			}
 		}
 
