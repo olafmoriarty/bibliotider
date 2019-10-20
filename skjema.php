@@ -106,6 +106,55 @@
 			echo '<p><input type="hidden" name="fane_sendt_inn" value="unntak"><input type="submit" value="'.__('Lagre unntak', 'bibliotider').'" /></p>';
 			echo '</form>';
 			echo '<h2>'.__('Registrerte unntak', 'bibliotider').'</h2>';
+
+			$query = 'SELECT u_startdato, u_sluttdato, id, filial, betjent, starttid, sluttid FROM ' . $this->tabnavn . ' WHERE u_startdato > CAST(\'' . date( 'Y-m-d', strtotime('-1 week') ) . '\' AS DATE) ORDER BY u_startdato';
+			$result = $wpdb->get_results( $query, OBJECT_K );
+			$num = $wpdb->num_rows;
+			if (0 == $num) {
+				echo '<p>Ingen avvik registrert</p>';
+			}
+			else {
+				ksort( $result );
+				$c = '<table class="apningstider">';
+
+				// Headerrad
+				$c .=  '<tr>';
+				$c .=  '<th>' . __( 'Startdato', 'bibliotider' ) . '</th>';
+				$c .=  '<th>' . __( 'Sluttdato', 'bibliotider' ) . '</th>';
+				$c .=  '<th>' . __( 'Filial', 'bibliotider' ) . '</th>';
+				$c .=  '<th>' . __( 'Type åpningstid', 'bibliotider' ) . '</th>';
+				$c .=  '<th>' . __( 'Fra', 'bibliotider' ) . '</th>';
+				$c .=  '<th>' . __( 'Til', 'bibliotider' ) . '</th>';
+				$c .=  '<th></th>';
+				$c .=  '</tr>';
+
+				foreach ($result AS $dato => $obj) {
+					$eksplodert_tid = explode( '-', $dato );
+					//	$datotid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2], $eksplodert_tid[0] );
+
+					$dagtid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2], $eksplodert_tid[0] );
+
+					$c .=  '<tr>';
+					$c .= '<td>' . $obj->u_startdato . '</td>';
+					$c .= '<td>' . $obj->u_sluttdato . '</td>';
+					$c .= '<td>' . $filialer[ $obj->filial ][0] . '</td>';
+					$c .= '<td>' . $betjenttyper[ $obj->betjent - 1 ][0] . '</td>';
+					$c .= '<td>' . $obj->starttid . '</td>';
+					$c .= '<td>' . $obj->sluttid . '</td>';
+					$c .= '<td>'; 
+					$c .= '<form method="post" action="">';
+					$c .= '<input type="hidden" name="fane_sendt_inn" value="slettunntak"><input type="hidden" name="id" value="'.$obj->id.'"><input type="submit" value="'.__('Slett unntak', 'bibliotider').'" />';
+					$c .= '</form>';
+					$c .= '</td>';
+					$c .=  '</tr>';
+
+					
+				}
+				$c .=  '</table>';
+				echo $c;
+			}
+
+			
 		?>
     </section>
     <section class="tab-panel">

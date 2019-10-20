@@ -476,6 +476,17 @@ class Bibliotider {
 			}
 		}
 
+		// ----- Sletting av unntak -----
+
+		elseif ( isset( $_POST['fane_sendt_inn'] ) && $_POST['fane_sendt_inn'] == 'slettunntak' && isset($_POST['id']) && is_numeric($_POST['id']) ) {
+			echo 'VI KOMMER OSS HIT';
+		
+			$wpdb->delete( $this->tabnavn, array( 'id' => $_POST['id']), array( '%d' ) );
+
+		}
+
+			
+
 		// ----- Når brukeren har endret lista over filialer -----
 
 		elseif ( isset($_POST['fane_sendt_inn']) && $_POST['fane_sendt_inn'] == 'filialer' ) {
