@@ -189,10 +189,10 @@
 		echo '<p>'.__('Her kan du redigere hvilke perioder året er delt inn i, f.eks. sommertid og vintertid.', 'bibliotider').'</p>';
 
 			for ($i = 0; $i < $antall_filialer; $i++) {
-				echo '<h2>'.$filialer[$i].'</h2>';
+				echo '<h2>'.$filialer[$i][0].'</h2>';
 				if (!$antall_perioder[$i]) {
 					echo '<p>'.__('Ingen perioder er registrert for denne filialen. Filialen er oppført som stengt hele året inntil du legger til minst en periode.').'</p>';
-					echo '<p>'.sprintf(__('Legg til %1$s nye perioder på filialen %2$s', 'bibliotider'), '<input type="text" name="ny-periode-'.$i.'" value="0" size="2" />', '<strong>'.$filialer[$i].'</strong>').'</p>';
+					echo '<p>'.sprintf(__('Legg til %1$s nye perioder på filialen %2$s', 'bibliotider'), '<input type="text" name="ny-periode-'.$i.'" value="0" size="2" />', '<strong>'.$filialer[$i][0].'</strong>').'</p>';
 				}
 				else {
 					echo '<table>';
