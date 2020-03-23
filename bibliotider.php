@@ -214,12 +214,11 @@ class Bibliotider {
 		}
 
 		for ($i = $filial_min; $i <= $filial_max; $i++) {
-
 			if ( ! is_array($filialnavn[ $i ] )) {
 				break;
 			}
 			$filial_betjenttider = 0;
-			
+			$aktiv_tid_brukt = 0;
 			$dagtider = $this->dag( $dato, $i );
 			/*
 			if ( $filial == -1 ) {
@@ -228,8 +227,9 @@ class Bibliotider {
 			foreach( $dagtider as $bt => $dagobjekt ) {
 				if ( $bt > 0 ) {
 					$aktiv_tid = 0;
-					if ( $klokka_er >= $dagobjekt->starttid && $klokka_er < $dagobjekt->sluttid ) {
+					if ( $klokka_er >= $dagobjekt->starttid && $klokka_er < $dagobjekt->sluttid && !$aktiv_tid_brukt ) {
 						$aktiv_tid = 1;
+						$aktiv_tid_brukt = 1;
 						if ($filial != -1 && !$tid_naa) {
 							$tid_naa = $betjenttyper[ $bt - 1 ][0];
 						}
@@ -305,7 +305,7 @@ class Bibliotider {
 		if ( $slug ) {
 			$c .= '<p><a href="' . get_page_link( get_page_by_path( $slug ) ) . '">' . __( 'Alle åpningstider ...' , 'bibliotider' ) . '</a></p>';
 		}
-		return $c;
+			return $c;
 	}
 
 // E
@@ -731,6 +731,13 @@ class Bibliotider {
 
 	function uke( $dato, $filial = 0 ) {
 		$c = '';
+		$filialer = get_option( 'bibliotider_filialer' );
+		$avgrens_typer = 0;
+		$typeliste = [];
+		if (isset($filialer[$filial][2]) && strlen($filialer[$filial][2]) > 0)  {
+			 $avgrens_typer = 1;
+			 $typeliste = explode(':', $filialer[$filial][2]);
+		}
 		
 		// Typer åpningstid
 		$betjent_typer = get_option( 'bibliotider_betjent' );
@@ -750,7 +757,9 @@ class Bibliotider {
 		$c .=  '<tr>';
 		$c .=  '<th>' . __( 'Dag', 'bibliotider' ) . '</th>';
 		for ( $i = 0; $i < $antall_typer; $i++ ) {
-			$c .=  '<th>' . $betjent_typer[ $i ][0] . '</th>';
+			if (!$avgrens_typer || in_array($i, $typeliste)) {
+				$c .=  '<th>' . $betjent_typer[ $i ][0] . '</th>';
+			}
 		}
 		$c .=  '</tr>';
 
@@ -766,16 +775,18 @@ class Bibliotider {
 			// Hent info om denne dagens åpningstider
 			$dagtider = $this->dag( $dag, $filial );
 				for ( $i = 0; $i < $antall_typer; $i++ ) {
-					$c .=  '<td>';
-					if ( isset( $dagtider[ $i + 1 ] ) ) {
-						$c .=  substr( $dagtider[ $i + 1 ]->starttid, 0, 5 );
-						$c .=  '&ndash;';
-						$c .=  substr( $dagtider[ $i + 1 ]->sluttid, 0, 5 );
+					if (!$avgrens_typer || in_array($i, $typeliste)) {
+						$c .=  '<td>';
+						if ( isset( $dagtider[ $i + 1 ] ) ) {
+							$c .=  substr( $dagtider[ $i + 1 ]->starttid, 0, 5 );
+							$c .=  '&ndash;';
+							$c .=  substr( $dagtider[ $i + 1 ]->sluttid, 0, 5 );
+						}
+						else {
+							$c .=  '&ndash;';
+						}
+						$c .=  '</td>';
 					}
-					else {
-						$c .=  '&ndash;';
-					}
-					$c .=  '</td>';
 				}
 			$c .=  '</tr>';
 
@@ -842,10 +853,19 @@ class Bibliotider {
 				}
 				$c .=  '<h3>' . __( 'Åpningstider denne uka:', 'bibliotider' ) . '</h3>';
 				$c .= $this->uke( date( 'Y-m-d' ), $f );
+				
+				
+				
 				$c .=  '<h3>' . __( 'Avvik den nærmeste måneden:', 'bibliotider' ) . '</h3>';
-				$query = 'SELECT u_startdato, u_sluttdato FROM ' . $this->tabnavn . ' WHERE u_startdato BETWEEN CAST(\'' . date( 'Y-m-d' ) . '\' AS DATE) AND CAST(\'' . date( 'Y-m-d', strtotime( '+1 month' ) ) . '\' AS DATE) AND filial = '.$f;
+				$query = 'SELECT u_startdato, u_sluttdato FROM ' . $this->tabnavn . ' WHERE ((u_startdato BETWEEN CAST(\'' . date( 'Y-m-d' ) . '\' AS DATE) AND CAST(\'' . date( 'Y-m-d', strtotime( '+1 month' ) ) . '\' AS DATE)) OR (u_sluttdato BETWEEN CAST(\'' . date( 'Y-m-d' ) . '\' AS DATE) AND CAST(\'' . date( 'Y-m-d', strtotime( '+1 month' ) ) . '\' AS DATE)) ) AND filial = '.$f.' ORDER BY u_startdato';
 				$result = $wpdb->get_results( $query, OBJECT_K );
 				$num = $wpdb->num_rows;
+				$avgrens_typer = 0;
+				$typeliste = [];
+				if (isset($filialer[$f][2]) && strlen($filialer[$f][2]) > 0) {
+					$avgrens_typer = 1;
+					$typeliste = explode(':', $filialer[$f][2]);
+				}
 				if (0 == $num) {
 					$c .=  '<p>Ingen avvik registrert</p>';
 				}
@@ -857,37 +877,49 @@ class Bibliotider {
 					$c .=  '<tr>';
 					$c .=  '<th>' . __( 'Dag', 'bibliotider' ) . '</th>';
 					for ( $i = 0; $i < $antall_betjenttyper; $i++ ) {
-						$c .=  '<th>' . $betjenttyper[ $i ][0] . '</th>';
+						if (!$avgrens_typer || in_array($i, $typeliste)) {
+							$c .=  '<th>' . $betjenttyper[ $i ][0] . '</th>';
+						}
 					}
 					$c .=  '</tr>';
 
 					foreach ($result AS $dato => $obj) {
-								$eksplodert_tid = explode( '-', $dato );
+								$eksplodert_tid = explode( '-', $obj->u_startdato );
+								$eksplodert_tid_2 = explode( '-', $obj->u_sluttdato );
 								//	$datotid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2], $eksplodert_tid[0] );
 
 						$dagtid = mktime( 12, 0, 0, $eksplodert_tid[1], $eksplodert_tid[2], $eksplodert_tid[0] );
-
-						$c .=  '<tr>';
-						$c .=  '<td>';
-						$c .=  date_i18n( __( 'l d.m.', 'bibliotider' ), $dagtid );
-						$c .=  '</td>';
+						$sluttid = mktime( 12, 0, 0, $eksplodert_tid_2[1], $eksplodert_tid_2[2], $eksplodert_tid_2[0] );
 
 						// Hent info om denne dagens åpningstider
 						$dagtider = $this->dag( $obj->u_startdato, $f );
+							$tider = '';
 							for ( $i = 0; $i < $antall_betjenttyper; $i++ ) {
-								$c .=  '<td>';
-								if ( isset( $dagtider[ $i + 1 ] ) ) {
-									$c .=  substr( $dagtider[ $i + 1 ]->starttid, 0, 5 );
-									$c .=  '&ndash;';
-									$c .=  substr( $dagtider[ $i + 1 ]->sluttid, 0, 5 );
-								}
-								else {
-									$c .=  '&ndash;';
-								}
-								$c .=  '</td>';
-							}
-						$c .=  '</tr>';
+								if (!$avgrens_typer || in_array($i, $typeliste)) {
 
+									$tider .=  '<td>';
+									if ( isset( $dagtider[ $i + 1 ] ) ) {
+										$tider .=  substr( $dagtider[ $i + 1 ]->starttid, 0, 5 );
+										$tider .=  '&ndash;';
+										$tider .=  substr( $dagtider[ $i + 1 ]->sluttid, 0, 5 );
+									}
+									else {
+										$tider .=  '&ndash;';
+									}
+									$tider .=  '</td>';
+								}
+							}
+						
+						$enkeltdag = max($dagtid, mktime(12, 0, 0, date('n'), date('j'), date('Y')));
+						do {
+							$c .=  '<tr>';
+							$c .=  '<td>';
+							$c .=  date_i18n( __( 'l d.m.', 'bibliotider' ), $enkeltdag );
+							$c .=  '</td>';
+							$c .= $tider;
+							$c .=  '</tr>';
+							$enkeltdag += 86400;
+						} while ($enkeltdag <= min($sluttid, mktime(12, 0, 0, date('n'), date('j') + 31, date('Y'))));
 						
 					}
 					$c .=  '</table>';
